@@ -1,0 +1,16 @@
+<div class="item-button personnel-item-button">
+    <div class="row">
+        <div class="small-12 columns">
+            <span class="text-subheader">
+                <a class="text-link personnel-name-text-link" data-outsideId="{{ outsideId }}" data-userName="{{ userName }}">{{ userName }}</a>
+            </span>
+        </div>
+    </div>
+    <div class="row">
+        <div class="small-12 columns">
+            {{#if formattedPhone}}
+                <a class="text-link phone-text-link" href="tel:{{fixedPhone}}">{{ formattedPhone }}</a>
+            {{/if}}
+        </div>
+    </div>
+</div>

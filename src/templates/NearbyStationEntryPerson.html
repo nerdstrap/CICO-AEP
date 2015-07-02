@@ -1,0 +1,20 @@
+<div class="row">
+    <div class="large-3 columns contentData">
+        <span class="text-subheader"><a class="text-link personnel-name-text-link" href="#" data-outsideId="{{ outsideId }}" data-userName="{{ userName }}">{{ userName }}</a></span>
+        <span class="hasCrew hasCrew_{{hasCrew}} hidden"><img class="" title="checked-in with crew" alt="checked-in with crew" src="img/checked-in_with_crew_180x180.png"/></span>
+    </div>                  
+    <div class="large-3 columns contentData">
+        {{~#if fixedContact~}}
+        {{~#if formattedContact~}}
+            <a class='text-link phone-text-link' href='tel:{{fixedContact}}'>{{formattedContact}}</a>
+        {{/if}}
+        {{/if}}
+    </div>
+    <div class="large-6 columns">
+        {{~#if purpose}}
+            <span class="text-detail">
+                {{{purpose}}}
+            </span>
+        {{/if~}}
+    </div>
+</div>

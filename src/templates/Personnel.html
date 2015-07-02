@@ -1,0 +1,43 @@
+<div class="row collapse primary-details">
+
+    <div class="row loading personnel-loading">
+        <div class="small-12 columns cico-message cico-default">
+            <div class="message-title">
+                <span class="text-detail">Getting personnel info...</span>
+                <img src="img/ajax-loader_new.gif" />
+            </div>
+        </div>
+    </div>
+    
+    <div class="row wait-for-loaded">
+        <div class="small-12 columns">
+            <h1 class="text-headline personnel-name"></h1>
+        </div>
+    </div>
+    <div class="row wait-for-loaded">
+        <div class="small-12 columns text-body">
+            <a class="text-link phone-text-link personnel-phone" href="tel:{{contact}}">{{contact}}</a>
+        </div>
+    </div>
+    <div class="row wait-for-loaded">
+        <div class="small-12 columns">
+            <div class="stationCheckIns open"></div>
+        </div>
+    </div>
+    
+    <div class="row personnel-error hidden">
+        <div class="small-12 columns">
+            <span class="text-detail">There was an error encountered retrieving the personnel record. Please try again later.</span>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="row collapse wait-for-loaded">
+    <div class="small-12 columns">
+        <div class="section-container accordion" data-section="accordion;" data-options="one_up: false;">
+            <section class="stationCheckIns recent"></section>
+        </div>
+    </div>
+</div>

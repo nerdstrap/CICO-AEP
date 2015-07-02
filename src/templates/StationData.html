@@ -1,0 +1,163 @@
+<p class="title text-subheader" data-section-title>
+    <a class="section-button" href="#">
+        <span class="title-text-label">{{defaultTitleText}}</span>
+        <span class="section-button-open">&#43;</span>
+        <span class="section-button-close">&#45;</span>
+    </a>
+</p>
+<div class="content collapse" data-section-content>
+    <ul class="no-list-style">
+        <li class="row">
+            <div class="large-6 columns">
+                <span class="text-body">
+                    {{~#ifCond stationType "TC"~}}
+                    Site Phone
+                    {{~else~}}
+                    Station Phone
+                    {{~/ifCond~}}
+                </span>
+            </div>
+            <div class="large-6 columns contentData">
+                <span class="text-detail">
+                    {{~ defaultValue phone "&nbsp;" ~}}
+                </span>
+            </div>
+        </li>
+        {{#ifCond stationType "TD"}}
+        <li class="row">
+            <div class="large-6 columns">
+                <span class="text-body">
+                    Radio Channel
+                </span>
+            </div>
+            <div class="large-6 columns contentData">
+                <span class="text-detail">
+                    {{~ defaultValue radio "&nbsp;" ~}}
+                </span>
+            </div>
+        </li>
+        <li class="row">
+            <div class="large-6 columns">
+                <span class="text-body">
+                    Emergency Contact Numbers
+                </span>
+            </div>
+            <div class="large-6 columns contentData">
+                <span class="text-detail">
+                    {{~ defaultValue contacts "&nbsp;" ~}}
+                </span>
+            </div>
+        </li>
+        {{/ifCond}}
+        {{#ifCond stationType "TC"}}
+        <li class="row">
+            <div class="large-6 columns">
+                <span class="text-body">
+                    Street
+                </span>
+            </div>
+            <div class="large-6 columns contentData">
+                <span class="text-detail">
+                    {{~ defaultValue streetAddress "&nbsp;" ~}}
+                </span>
+            </div>
+        </li>
+        {{/ifCond}}
+        <li class="row">
+            <div class="large-6 columns">
+                <span class="text-body">
+                    City
+                </span>
+            </div>
+            <div class="large-6 columns contentData">
+                <span class="text-detail">
+                    {{~ defaultValue city "&nbsp;" ~}}
+                </span>
+            </div>
+        </li>
+        <li class="row">
+            <div class="large-6 columns">
+                <span class="text-body">
+                    County
+                </span>
+            </div>
+            <div class="large-6 columns contentData">
+                <span class="text-detail">
+                    {{~ defaultValue county "&nbsp;" ~}}
+                </span>
+            </div>
+        </li>
+        <li class="row">
+            <div class="large-6 columns">
+                <span class="text-body">
+                    State
+                </span>
+            </div>
+            <div class="large-6 columns contentData">
+                <span class="text-detail">
+                    {{~ defaultValue state "&nbsp;" ~}}
+                </span>
+            </div>
+        </li>
+        <li class="row">
+            <div class="large-6 columns">
+                <span class="text-body">
+                    GPS (lat/long)
+                </span>
+            </div>
+            <div class="large-6 columns contentData">
+                <span class="text-detail">
+                    {{~#if latitude~}}
+                    {{~#if longitude~}}
+                    {{latitude}} / {{longitude}}
+                    {{~else~}}
+                    &nbsp;
+                    {{~/if~}}
+                    {{~else~}}
+                    &nbsp;
+                    {{~/if~}}
+                </span>
+            </div>
+        </li>
+        {{#ifCond stationType "TD"}}
+        <li class="row">
+            <div class="large-6 columns">
+                <span class="text-body">
+                    Address/Directions
+                </span>
+            </div>
+            <div class="large-6 columns contentData">
+                <span class="text-detail">
+                    {{~ defaultValue directions "&nbsp;" ~}}
+                </span>
+            </div>
+        </li>
+        <li class="row">
+            <div class="large-6 columns">
+                <span class="text-body">
+                    Additional Station Data
+                </span>
+            </div>
+            <div class="large-6 columns contentData">
+                <span class="text-detail">
+                    {{~ defaultValue stationData "&nbsp;" ~}}
+                </span>
+            </div>
+        </li>
+        {{/ifCond}}
+        {{#ifCond stationType "TC"}}
+        <li class="row">
+            <div class="large-6 columns">
+                <span class="text-body">
+                    Directions
+                </span>
+            </div>
+            <div class="large-6 columns contentData">
+                <span class="text-detail">
+                    {{~ defaultValue directions "&nbsp;" ~}}
+                </span>
+            </div>
+        </li>
+        {{/ifCond}}
+    </ul>
+</div>

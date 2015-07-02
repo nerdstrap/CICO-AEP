@@ -1,0 +1,31 @@
+// Make sure the charset is set appropriately
+@charset "UTF-8";
+
+// Foundation Components
+//@import "../foundation/variables";
+//@import "../foundation/components/global";
+//@import "../foundation/components/buttons";
+//@import "../foundation/components/button-groups";
+
+// Cico globals
+//@import "cico.globals";
+//@import "cico.foundation.button"; 
+
+$radius: true;
+$even: 0;
+$float: left;
+$full-width-buttons:true;
+$corner-radius:0;
+$include-html-button-classes: true;
+$button-radius: 6px;
+
+.cico-button-group { 
+    @include button-group-container;
+    .cico-button {
+        @include cico-button($full-width-buttons);
+    }
+
+    @for $i from 2 through 8 {
+      &.even#{-$i} li { @include button-group-style($radius:$button-radius, $even:$i); }
+    }
+}

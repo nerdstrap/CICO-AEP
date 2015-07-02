@@ -1,0 +1,15 @@
+{{#if distanceInMiles}}
+<span class="text-body">{{distanceInMiles}}&nbsp;miles</span>
+{{else}}
+<span class="disabled text-detail">
+    {{~#if hasCoordinates}}unavailable{{else}}no coordinates{{/if~}}   
+</span>
+{{/if}}
+{{#if hasCoordinates}}
+<span class="text-body">
+    &nbsp;|&nbsp;
+    <a class="directions-text-link" href="#">
+        <span class="text-link" data-stationId="{{stationId}}" data-latitude="{{coords.latitude}}" data-longitude="{{coords.longitude}}">directions</span>&nbsp;<i class="fi-marker"></i>
+    </a>
+</span>
+{{/if}}

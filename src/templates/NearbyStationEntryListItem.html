@@ -1,0 +1,28 @@
+<div class="item-button station-item-button">
+    <div class="list-item-group-header">
+        <div class="row">
+            <div class="large-6 columns">
+                {{~#if stationId~}}     
+                <span class="text-subheader"><a class="text-link station-name-text-link" data-stationId="{{ stationId }}">{{ stationName }}</a></span> 
+                {{~else~}}
+                <span class="text-subheader">{{ stationName }}</span> 
+                {{~/if~}}  
+                <img class="text-icon telecom-text-icon hidden" title="telecom station" alt="telecom station" src="img/telecom_180x180.png"/>
+                <img class="text-icon restricted-text-icon hidden" title="restricted station entry" alt="restricted station entry" src="img/restricted_180x180.png"/>
+                <img class="text-icon hazard-text-icon hidden" title="station hazard present" alt="station hazard present" src="img/hazard_180x180.png"/>
+                <img class="text-icon checked-in-text-icon hidden" title="station currently has personnel checked-in" alt="station currently has personnel checked-in" src="img/checked-in_180x180.png"/>
+            </div>
+            <div class="large-6 columns">
+                {{#if formattedStationPhone }}
+                    <a class='text-link phone-text-link' href='tel:{{stationPhone}}'>{{formattedStationPhone}}</a>
+                {{/if}}
+            </div>
+        </div>
+        <div class="row">
+            <div class="large-12 columns">
+                {{> templates_partial_GpsDistancePartial }}
+            </div>
+        </div>
+    </div>
+    <ul class="station-check-ins"></ul>
+</div>

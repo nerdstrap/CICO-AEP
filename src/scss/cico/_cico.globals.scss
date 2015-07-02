@@ -1,0 +1,26 @@
+// Foundation Components
+//@import "../foundation/components/global";
+
+/*---------------------------------------------------------------------------*/
+/* default colors
+/*---------------------------------------------------------------------------*/
+$color-hazard: #C24922;
+$color-restricted: #EF7A24; 
+$color-primary: #2BA6CB;
+$color-check-in: #93BF35;
+$color-check-out: #ef7a24;
+$color-secondary: #B2B2B2; 
+
+$default-button-area-max-width:355px;
+$default-button-area-min-width:228px;
+
+$default-corner-radius: 6px;
+$default-font-family: "Helvetica Neue", arial;
+
+$dialog-corner-radius: 14px;
+$modal-shadow: 0px 0px 15px 4px rgba(0, 0, 0, 0.5);
+
+$anchor-text-decoration: underline;
+$anchor-font-color: $color-primary;
+$anchor-font-color-hover: darken($primary-color, 5%);
+

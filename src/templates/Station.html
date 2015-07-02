@@ -1,0 +1,61 @@
+<div class="row collapse primary-details">
+
+    <div class="row loading station-primary-details-loading">
+        <div class="small-12 columns cico-message cico-default">
+            <div class="message-title">
+                <span class="text-detail">Getting station info...</span>
+                <img src="img/ajax-loader_new.gif" />
+            </div>
+        </div>
+    </div>
+
+    <div class="small-12 columms wait-for-loaded">        
+        <div class="row">
+            <div class="small-12 columns">
+                <h1 class="text-headline station-name"></h1> 
+            </div>
+        </div>
+        <div class="row">
+            <div class="small-12 columns">
+                <div class="station-distance-directions">
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="small-12 columns">
+                &nbsp;
+                <img class="text-icon text-icon-large telecom-text-icon hidden" title="telecom station" alt="telecom station" src="img/telecom_180x180.png"/>
+                <img class="text-icon text-icon-large linked-station-text-icon hidden" title="linked station" alt="linked station" src="img/link_180x180.png"/>
+                <img class="text-icon text-icon-large restricted-text-icon hidden" title="restricted station entry" alt="restricted station entry" src="img/restricted_180x180.png"/>
+                <img class="text-icon text-icon-large hazard-text-icon hidden" title="station hazard present" alt="station hazard present" src="img/hazard_180x180.png"/>
+                <img class="text-icon text-icon-large warning-text-icon hidden" title="station warning present" alt="station warning present" src="img/warning_180x180.png"/>
+            </div>
+        </div>
+        <div class="row collapse">
+            <div class="large-6 columns">
+
+                <div class="row">
+                    <div class="small-12 columns">
+                        <div id="stationEntryOpenView"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="large-6 columns">
+                {{> templates_partial_DispatchCenterPartial }}
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row collapse wait-for-loaded">
+    <div class="small-12 columns">
+        <div class="section-container accordion" data-section="accordion;" data-options="one_up: false;">
+            <section id="stationHazard"></section>
+            <section id="stationAbnormalConditions"></section>
+            <section id="stationWarnings"></section>
+            <section id="stationData"></section>
+            <section class="stationCheckIns open"></section>
+            <section class="stationCheckIns recent"></section>
+        </div>
+    </div>
+</div>

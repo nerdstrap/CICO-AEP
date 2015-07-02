@@ -1,0 +1,49 @@
+<div class="large-3 columns text-body">
+    {{~#if InOutTimeString~}}
+        {{InOutTimeString}}
+    {{~else~}}
+        &nbsp;
+    {{~/if~}}
+</div>
+<div class="large-3 columns text-body contentData">
+    {{~#if name~}}     
+        {{~#if thirdParty~}}  
+            <img id="third-party-icon" class="text-icon" title="third party" alt="third party" src="img/third_party_180x180.png"/>
+            <!--<i class="fi-universal-access"></i>-->
+         {{~/if~}}   
+        {{~#if name_url~}}
+            <a class='text-link' href='{{name_url}}'>{{name}}</a>
+        {{~else~}}
+            {{name}}
+        {{~/if~}}
+    {{~else~}}
+        <span class="text-detail">name data missing</span>
+    {{~/if~}}
+    <span class="hasCrew hasCrew_{{hasCrew}} hidden">
+        <img class="text-icon" title="checked-in with crew" alt="checked-in with crew" src="img/checked-in_with_crew_180x180.png"/>
+    </span>
+</div>                  
+<div class="large-2 columns text-body contentData">
+    {{~#if fixedContact~}}
+        {{~#if formattedContact~}}
+            <a class='clickablePhoneNumber text-link' href='tel:{{fixedContact}}'>{{formattedContact}}</a>
+        {{~else~}}
+            <span class="text-detail">&nbsp;</span>&nbsp;
+        {{~/if~}}
+    {{~else~}}
+        <span class="text-detail">&nbsp;</span>&nbsp;
+    {{~/if~}}
+</div>      
+<div class="large-4 columns text-detail contentData">
+    {{~#if purpose}}{{{purpose}}}{{else}}&nbsp;{{/if~}}
+</div>
+{{#if expectedCheckOutTimeString}}
+{{~#unless outTime~}}
+    <div class="large-12 columns text-detail contentData">
+        {{expectedCheckOutTimeString}}
+    </div>
+{{~/unless~}}
+{{/if}}
+<div class="large-4 columns text-detail contentData">
+    {{~#if additionalInfo}}{{{additionalInfo}}}{{else}}&nbsp;{{/if~}}
+</div>

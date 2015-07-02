@@ -1,0 +1,72 @@
+<div id="extend-durationForm">
+
+    {{! Loading messages }}
+    <div id="loading-dialog" class="cico-dialog">
+        <div class="alert-title process">
+            <div id="loadingEntryData" class="loading-msg">Checking entry data.</div>
+        </div>
+        <div style="text-align: center;">
+            <div>    
+                <p><img src="img/ajax-loader_new.gif" align="center" /></p>
+            </div>
+        </div>
+    </div>
+
+    {{! Dialog Container.  Used to hide dialogs until done loading }}
+    <div id="extend-duration-dialogs" class="hidden">
+        {{! Extend-duration Dialog }}
+        <div id="extend-duration-dialog" class="hidden">
+
+            {{! Extend duration container }}
+            <div id="extend-durationModal" class="cico-dialog">
+
+                {{! The actual extend-duration form }}
+                <div id="extend-durationForm">
+                    <div class="extend-durationContainer">
+                        <div class="row cico-message cico-info">
+                            <div class="small-3 columns">
+                                <label for="expectedCheckOutTime" class="inline text-body" >Current</label>
+                            </div>
+
+                            <div class="small-9 columns input-column">
+                                <span class="expectedCheckOutTime text-body"></span>
+                            </div>
+                        </div>
+
+                        <div class="row cico-message cico-info">
+                            <div class="small-3 columns">
+                                <label for="additionalHours" class="inline text-body" >Add time</label>
+                            </div>
+
+                            <div class="small-9 columns input-column">
+                                <select id="additionalHours" class="text-body" >
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row cico-message cico-info">
+                            <div class="small-3 columns">
+                                <label for="expectedCheckOutTimeNew" class="inline text-body" >New</label>
+                            </div>
+
+                            <div class="small-9 columns input-column">
+                                <span class="expectedCheckOutTimeNew text-body"></span>
+                            </div>
+                        </div>
+                        <div class="row cico-message cico-info">
+                            <div class="small-12 columns">
+                                <textarea class="text-body" id="additionalInfo" placeholder="Additional Info" ></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modalButtons">
+                <a id="cancel-extend-durationBtn" class="alert-button cancelModal">Cancel</a>
+                <a id="extend-durationBtn" class="alert-button" href="#">Save</a>
+            </div>
+        </div>
+
+    </div>
+</div>

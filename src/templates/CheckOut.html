@@ -1,0 +1,51 @@
+<div id="checkOutForm">
+
+    {{! Loading messages }}
+    <div id="loading-dialog" class="cico-dialog-large">
+        <div class="alert-title process">
+            <div id="loadingEntryData" class="loading-msg">Checking entry data.</div>
+        </div>
+        <div style="text-align: center;">
+            <div>    
+                <p><img src="img/ajax-loader_new.gif" align="center" /></p>
+            </div>
+        </div>
+    </div>
+
+    {{! Dialog Container.  Used to hide dialogs until done loading }}
+    <div id="check-out-dialogs" class="hidden">
+        
+        {{! TCom Station Warning Dialog }}
+        <div id="station-warning-dialog" class="hidden">
+            <div id="stationWarningModal" class="cico-dialog-large">
+                <div id="stationWarnings"></div>
+            </div>
+        </div>
+
+        {{! Check-Out Dialog }}
+        <div id="check-out-dialog" class="hidden">
+
+            {{! Check out container }}
+            <div id="checkOutModal" class="cico-dialog-large">
+
+                {{! The actual check out form }}
+                <div id="checkOutForm">
+                    <div class="checkOutContainer">
+
+                        <div class="row cico-message cico-info">
+                            <div class="small-12 columns">
+                                <textarea class="text-body" id="additionalInfo" placeholder="Additional Info" ></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modalButtons">
+                <a id="cancel-checkOutBtn" class="alert-button cancelModal">Cancel</a>
+                <a id="checkOutBtn" class="alert-button" href="#">Check-out</a>
+            </div>
+        </div>
+
+    </div>
+</div>

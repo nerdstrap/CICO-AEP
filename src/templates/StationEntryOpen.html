@@ -1,0 +1,63 @@
+<div class="row collapse station-entry-loading-view">
+    <div class="small-12 columns">
+        <div class="loading station-entry-loading">
+            <span class="text-detail">Getting station entry status...</span>
+            <img src="img/ajax-loader_new.gif" />
+        </div>
+    </div>
+</div>
+<div class="row collapse station-entry-check-out-view hidden">
+    <div class="small-12 columns">
+        <a id="showCheckOutModalBtn" class="cico-button radius check-out" href="#">Check-out</a>
+    </div>
+</div>
+<div class="row collapse station-entry-extend-duration-view hidden">
+    <div class="small-12 columns">
+        <div class="row collapse">
+            <div class="small-12 columns">
+                <span class="text-body">
+                    Expected Check-out time:
+                </span>
+                <span class="text-detail expected-check-out-time">
+                </span>
+            </div>
+        </div>
+        <div class="row collapse">
+            <div class="small-12 columns">
+                <a id="showExtendDurationModalBtn" class="cico-button radius extend-duration" href="#">Edit</a>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row collapse hidden" id="linked-site-redirect">
+    <div class="small-12 columns">
+        <div class="linked-site-redirect-text-div hidden" id="linked-TD-site-redirect-text-div">
+            Go to Telecom site<br/>
+            <a class="linked-station-name-text-link" href="#"></a><br/>
+            to check-in at both sites.
+        </div>
+        <div class="linked-site-redirect-text-div hidden" id="linked-TC-site-redirect-text-div">
+            Go to T&D site<br/>
+            <a class="linked-station-name-text-link" href="#"></a><br/>
+            to only check-in there.
+        </div>
+    </div>
+</div>
+<div class="row collapse station-entry-check-in-view hidden">
+    <div class="small-12 columns">
+        <a id="showCheckInModalBtn" class="cico-button radius check-in" href="#">Check-in</a>
+    </div>
+</div>
+<div class="row collapse station-entry-already-checked-in-view hidden">
+    <div class="small-12 columns">
+        <a id="goToCheckedInStationBtn" class="cico-button radius cico-default" href="#">Open Check-in</a>
+    </div>
+</div>
+<div class="row collapse station-entry-error-view hidden">
+    <div class="small-12 columns">
+        <div class="cico-message cico-error">
+            <span class="text-detail">Error retrieving check-in data. Please call the dispatch desk if you need to check-in or check-out of this station.</span>
+        </div>
+    </div>
+</div>
+
