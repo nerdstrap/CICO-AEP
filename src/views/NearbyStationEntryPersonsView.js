@@ -1,14 +1,15 @@
 define(function(require) {
-
     'use strict';
 
-    var $ = require('jquery'),
-            _ = require('underscore'),
-            Backbone = require('backbone'),
-            CompositeView = require('views/base/CompositeView'),
-            NearbyStationEntryPersonView = require('views/NearbyStationEntryPersonView');
+    var $ = require('jquery');
+    var _ = require('underscore');
+    var Backbone = require('backbone');
+    var BaseView = require('views/BaseView');
+    var config = require('config');
+    var EventNameEnum = require('enums/EventNameEnum');
+    var NearbyStationEntryPersonView = require('views/NearbyStationEntryPersonView');
 
-    var NearbyStationEntryPersonsView = CompositeView.extend({
+    var NearbyStationEntryPersonsView = BaseView.extend({
         initialize: function (options) {
             console.debug('NearbyStationEntryPersonsView.initialize');
             options || (options = {});

@@ -1,77 +1,65 @@
 define(function(require) {
+    'use strict';
 
-    "use strict";
+    var $ = require('jquery');
+    var _ = require('underscore');
+    var Backbone = require('backbone');
+    var BaseView = require('views/BaseView');
+    var config = require('config');
+    var EventNameEnum = require('enums/EventNameEnum');
+    var template = require('hbs!templates/PersonnelView');
 
-    var $ = require('jquery'),
-            _ = require('underscore'),
-            Backbone = require('backbone'),
-            CompositeView = require('views/base/CompositeView'),
-            
-            NameLinkTypeEnum = require('enums/NameLinkTypeEnum'),
-            StationEntryListTypeEnum = require('enums/StationEntryListTypeEnum'),
-            StationEntryListView = require('views/StationEntryListView'),
-            env = require('env'),
-            template = require('hbs!templates/Personnel');
-
-
-    var PersonnelView = CompositeView.extend({
+    var PersonnelView = BaseView.extend({
         className: 'details-view personnel-details-view',
         initialize: function(options) {
-            console.debug("PersonnelView.initialize");
+            console.debug('PersonnelView.initialize');
             options || (options = {});
-            this.appDataModel = options.appDataModel;
-            this.stationEntryCollection = options.stationEntryCollection;
-
-            this.listenTo(this.model, 'change', this.updateViewFromModel);
-            this.listenTo(this.model, 'sync', this.updateViewFromModel);
-            this.listenTo(this.model, 'error', this.updateViewFromModel);
-
-            this.personnelLoaded = false;
+            this.dispatcher = options.dispatcher;
+            this.myPersonnelModel = options.myPersonnelModel;
+            this.stationEntryLogCollection = options.stationEntryLogCollection;
+            this.openStationEntryLogModel = options.openStationEntryLogModel;
+            
+            this.listenTo(this, 'loaded', this.onLoaded);
+            this.listenTo(this, 'leave', this.onLeave);
         },
         render: function() {
-            console.debug("PersonnelView.render");
-
+            console.debug('PersonnelView.render');
             var currentContext = this;
+            currentContext.$el.html(template(currentContext.model.attributes));
 
-            this.$el.html(template(this.model.attributes));
-
-            var stationOpenCheckInsView = new StationEntryListView({
-                collection: currentContext.stationEntryCollection,
-                el: $(".stationCheckIns.open", currentContext.$el),
-                appDataModel: currentContext.appDataModel,
-                dispatcher: this.dispatcher,
-                stationEntryListType: StationEntryListTypeEnum.open,
+            currentContext.stationOpenCheckInsView = new StationEntryCollectionView({
+                dispatcher: currentContext.dispatcher,
+                collection: currentContext.stationEntryLogCollection,
+                el: $('.stationCheckIns.open', currentContext.$el),
+                myPersonnelModel: currentContext.myPersonnelModel,
                 nameLinkType: NameLinkTypeEnum.station
             });
-            this.renderChild(stationOpenCheckInsView);
-            stationOpenCheckInsView.hideSectionTitle();
+            currentContext.renderChild(currentContext.stationOpenCheckInsView);
+            currentContext.stationOpenCheckInsView.hideSectionTitle();
 
-            var stationRecentCheckInsView = new StationEntryListView({
-                collection: currentContext.stationEntryCollection,
-                el: $(".stationCheckIns.recent", currentContext.$el),
-                appDataModel: currentContext.appDataModel,
-                stationEntryListType: StationEntryListTypeEnum.historical,
+            var stationRecentCheckInsView = new StationEntryCollectionView({
+                dispatcher: currentContext.dispatcher,
+                collection: currentContext.stationEntryLogCollection,
+                el: $('.stationCheckIns.recent', currentContext.$el),
+                myPersonnelModel: currentContext.myPersonnelModel,
                 nameLinkType: NameLinkTypeEnum.station
             });
-            this.renderChild(stationRecentCheckInsView);
-
-            this.updateViewFromModel();
+            currentContext.renderChild(stationRecentCheckInsView);
 
             return this;
         },
         updateViewFromModel: function() {
-            this.$('.personnel-loading').hide();
-            this.$('.personnel-name').html(this.model.get("userName"));
-            if (this.model.has("contact") && this.model.get("contact")) {
-                this.$('.personnel-phone').attr('href', 'tel:' + env.getPhoneFixedNumber(this.model.get("contact")));
-                this.$('.personnel-phone').text(env.getFormattedPhoneNumber(this.model.get("contact")));
+            this.$('.personnel-name').html(this.model.get('userName'));
+            if (this.model.has('contact') && this.model.get('contact')) {
+                this.$('.personnel-phone').attr('href', 'tel:' + env.getPhoneFixedNumber(this.model.get('contact')));
+                this.$('.personnel-phone').text(env.getFormattedPhoneNumber(this.model.get('contact')));
             }
-            this.personnelLoaded = true;
-            this.tryHideLoading();
-
         },
         events: {
-            "click .sectionButton": "sectionClick"
+            'click .sectionButton': 'sectionClick'
+        },
+        getRecentStationEntries: function() {
+            this.stationEntryLogCollection.getRecentStationEntriesByPersonnel(this.model);
         },
         sectionClick: function(event) {
             if ($(event.target).closest('section').hasClass('disabled')) {
@@ -83,11 +71,13 @@ define(function(require) {
                 }, 250);
             }
         },
-        tryHideLoading: function() {
-            if (this.personnelLoaded) {
-                this.$('.wait-for-loaded').removeClass('wait-for-loaded');
-                this.$('.loading').hide();
-            }
+        onLoaded: function() {
+            this.$('.wait-for-loaded').removeClass('wait-for-loaded');
+            this.$('.loading').hide();
+            this.updateViewFromModel();
+            this.getRecentStationEntries();
+        },
+        onLeave: function() {
         }
     });
     return PersonnelView;

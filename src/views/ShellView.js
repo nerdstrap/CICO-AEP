@@ -1,79 +1,149 @@
 define(function(require) {
-
     'use strict';
 
-    var $ = require('jquery'),
-            _ = require('underscore'),
-            Backbone = require('backbone'),
-            template = require('hbs!templates/Shell');
+    var $ = require('jquery');
+    var _ = require('underscore');
+    var Backbone = require('backbone');
+    var BaseView = require('views/BaseView');
+    var config = require('config');
+    var EventNameEnum = require('enums/EventNameEnum');
+    var HeaderView = require('views/HeaderView');
+    var FooterView = require('views/FooterView');
+    var ProgressModalView = require('views/ProgressModalView');
+    var ConfirmationModalView = require('views/ConfirmationModalView');
+    var template = require('hbs!templates/ShellView');
 
-    return Backbone.View.extend({
+    var ShellView = BaseView.extend({
         
+        /**
+         * 
+         * @param {type} options
+         */
         initialize: function(options) {
-            console.debug('ShellView.initialize');
             options || (options = {});
-            this.titleBarViewInstance = options.titleBarView;
-            this.footerViewInstance = options.footerView;
-            this.progressViewInstance = options.progressView;
-            this.errorViewInstance = options.errorView;
-            this.confirmationViewInstance = options.confirmationView;
-            this.loginViewInstance = options.loginView;
-            this.warningViewInstance = options.warningView;
-        },
-                
-        render: function() {
-            console.debug('ShellView.render');
-            this.$el.html(template());
-            var subViews = [
-                this.titleBarViewInstance,
-                this.footerViewInstance,
-                this.progressViewInstance,
-                this.errorViewInstance,
-                this.confirmationViewInstance,
-                this.warningViewInstance
-            ];
-            _.each(subViews, function(view) {
-                view.render();
-                this.$('#' + view.id).replaceWith(view.el);
-            }, this);
+            this.dispatcher = options.dispatcher || this;
 
+            this.listenTo(this.dispatcher, EventNameEnum.showConfirmationView, this.showConfirmationView);
+            this.listenTo(this.dispatcher, EventNameEnum.showProgessView, this.showProgessView);
+
+            this.listenTo(this, 'loaded', this.onLoaded);
+            this.listenTo(this, 'leave', this.onLeave);
+        },
+        
+        /**
+         * 
+         * @returns {ShellView}
+         */
+        render: function() {
+            var currentContext = this;
+            currentContext.setElement(template());
+            currentContext.renderHeaderView();
+            currentContext.renderFooterView();
+            currentContext.renderProgressModalView();
+            currentContext.renderConfirmationModalView();
             return this;
         },
-                
-        events: {},
         
-        titleBarView: function() {
-            return this.titleBarViewInstance;
+        /**
+         * 
+         * @returns {ShellView}
+         */
+        renderHeaderView: function(){
+            var currentContext = this;
+            currentContext.headerView = new HeaderView({
+                dispatcher: currentContext.dispatcher
+            });
+            currentContext.replaceChild(currentContext.headerView, '#header-view-placeholder');
+            return this;
         },
-                
+        
+        /**
+         * 
+         * @returns {ShellView}
+         */
+        renderFooterView: function(){
+            var currentContext = this;
+            currentContext.footerView = new FooterView({
+                dispatcher: currentContext.dispatcher
+            });
+            currentContext.replaceChild(currentContext.footerView, '#footer-view-placeholder');
+            return this;
+        },
+        
+        /**
+         * 
+         * @returns {ShellView}
+         */
+        renderProgressModalView: function(){
+            var currentContext = this;
+            currentContext.progressModalView = new ProgressModalView({
+                id: 'progressModalView',
+                dispatcher: currentContext.dispatcher
+            });
+            currentContext.renderChildInto(currentContext.progressModalView, '#progress-popup-view-container');
+            return this;
+        },
+        
+        /**
+         * 
+         * @returns {ShellView}
+         */
+        renderConfirmationModalView: function(){
+            var currentContext = this;
+            currentContext.confirmationModalView = new ConfirmationModalView({
+                id: 'confirmationModalView',
+                dispatcher: currentContext.dispatcher
+            });
+            currentContext.renderChildInto(currentContext.confirmationModalView, '#confirmation-popup-view-container');
+            return this;
+        },
+        
+        /**
+         * 
+         * @returns {jquery element}
+         */
         contentViewEl: function() {
-            return $('#contentView', this.el);
+            return $('#content-view-container', this.el);
         },
-                
-        footerView: function() {
-            return this.footerViewInstance;
+        
+        /**
+         * 
+         * @param {type} confirmationMessage
+         * @param {type} confirmationType
+         * @returns {ShellView}
+         */
+        showConfirmationView: function(confirmationMessage, confirmationType) {
+            var currentContext = this;
+            currentContext.confirmationView.show(confirmationMessage, confirmationType);
+            return this;
         },
-                
-        progressView: function() {
-            return this.progressViewInstance;
+        
+        /**
+         * 
+         * @param {type} promise
+         * @returns {ShellView}
+         */
+        showProgressView: function(promise) {
+            var currentContext = this;
+            currentContext.progressView.show(promise);
+            return this;
         },
-                
-        errorView: function() {
-            return this.errorViewInstance;
+        
+        /**
+         * 
+         */
+        onLoaded: function() {
+            console.trace('ShellView.onLoaded');
         },
-           
-        warningView: function() {
-            return this.warningViewInstance;
-        },
-                
-        confirmationView: function() {
-            return this.confirmationViewInstance;
-        },
-                
-        loginView: function() {
-            return this.loginViewInstance;
+        
+        /**
+         * 
+         */
+        onLeave: function() {
+            console.trace('ShellView.onLeave');
         }
-
     });
+
+    return ShellView;
 
 });

@@ -1,63 +1,92 @@
 define(function(require) {
-
     'use strict';
 
-    var $ = require('jquery'),
-            _ = require('underscore'),
-            Backbone = require('backbone'),
-            template = require('hbs!templates/Footer');
+    var $ = require('jquery');
+    var _ = require('underscore');
+    var Backbone = require('backbone');
+    var BaseView = require('views/BaseView');
+    var EventNameEnum = require('enums/EventNameEnum');
+    var template = require('hbs!templates/FooterView');
 
-    return Backbone.View.extend({
-        
-        tagName: 'footer',
-        
+    var FooterView = BaseView.extend({
+        /**
+         * 
+         * @param {type} options
+         */
         initialize: function(options) {
-            console.debug('FooterView.initialize');
             options || (options = {});
-            this.footerCopy = options.footerCopy;
-            this.controller = options.controller;
+            this.dispatcher = options.dispatcher || this;
         },
-                
+        /**
+         * 
+         * @returns {FooterView}
+         */
         render: function() {
-            console.debug('FooterView.render');
-            this.$el.html(template({
-                footerCopy: this.footerCopy
-            }));
-
+            var currentContext = this;
+            currentContext.setElement(template());
             return this;
         },
-                
-        setFooterCopy: function(footerCopy) {
-            this.footerCopy = footerCopy;
-            this.render();
-
-            return this;
-        },
-                
+        
+        /**
+         * 
+         */
         events: {
-            'click #logoutButton': 'logOut',
-            'click #openHelpButton': 'openHelp',
-            'click #emailHelpButton': 'emailHelp'
+            'click #open-help-button': 'openHelp',
+            'click #contact-support-button': 'contactSupport',
+            'click #logout-button': 'logout'
         },
-                
-        logOut: function(event) {
-            event.preventDefault();
-            if (this.controller) {
-                this.controller.logout();
-            }
-        },
+        
+        /**
+         * 
+         * @param {type} event
+         */
         openHelp: function(event) {
-            event.preventDefault();
-            if (this.controller) {
-                this.controller.openHelp();
+            if (event) {
+                event.preventDefault();
             }
+            var currentContext = this;
+            currentContext.dispatcher.trigger(EventNameEnum.openHelp);
         },
-         emailHelp: function(event) {
-            event.preventDefault();
-            if (this.controller) {
-                this.controller.emailHelp();
+        
+        /**
+         * 
+         * @param {type} event
+         */
+        contactSupport: function(event) {
+            if (event) {
+                event.preventDefault();
             }
-        }       
+            var currentContext = this;
+            currentContext.dispatcher.trigger(EventNameEnum.contactSupport);
+        },
+        
+        /**
+         * 
+         * @param {type} event
+         */
+        logout: function(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var currentContext = this;
+            currentContext.dispatcher.trigger(EventNameEnum.logout);
+        },
+        
+        /**
+         * 
+         */
+        onLoaded: function() {
+            console.trace('FooterView.onLoaded');
+        },
+        
+        /**
+         * 
+         */
+        onLeave: function() {
+            console.trace('FooterView.onLeave');
+        }
     });
+    
+    return FooterView;
 
 });

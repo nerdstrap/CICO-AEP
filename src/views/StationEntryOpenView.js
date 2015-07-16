@@ -1,14 +1,13 @@
 define(function(require) {
-
     'use strict';
 
-    var $ = require('jquery'),
-            _ = require('underscore'),
-            Backbone = require('backbone'),
-            CompositeView = require('views/base/CompositeView'),
-            env = require('env'),
-            template = require('hbs!templates/StationEntryOpen'),
-            cicoEvents = require('cico-events');
+    var $ = require('jquery');
+    var _ = require('underscore');
+    var Backbone = require('backbone');
+    var BaseView = require('views/BaseView');
+    var config = require('config');
+    var EventNameEnum = require('enums/EventNameEnum');
+    var template = require('hbs!templates/StationEntryOpen');
 
     return CompositeView.extend({
         initialize: function(options) {
@@ -17,17 +16,14 @@ define(function(require) {
             this.dispatcher = options.dispatcher || this;
             this.stationModel = options.stationModel;
             this.stationEntryLogModel = options.stationEntryLogModel;
-        },
-        leave: function() {
-            this.trigger('leave');
-            this.unbind();
-            this.stopListening();
-            this.remove();
+
+            this.listenTo(currentContext.dispatcher, currentContext.dispatcher.checkInSuccess, this.onCheckInSuccess);
+            this.listenTo(currentContext.dispatcher, currentContext.dispatcher.extendDurationSuccess, this.onExtendDurationSuccess);
+            this.listenTo(this, 'loaded', this.onLoaded);
         },
         render: function() {
             console.debug('StationEntryOpenView.render');
             this.$el.html(template());
-            this.updateViewFromModel();
             return this;
         },
         events: {
@@ -42,7 +38,7 @@ define(function(require) {
                 event.preventDefault();
             }
             if (!this.$('#showExtendDurationModalBtn').hasClass('disabled')) {
-                cicoEvents.trigger(cicoEvents.goToExtendDuration, this.stationEntryLogModel);
+                currentContext.dispatcher.trigger(EventNameEnum.goToExtendDuration, this.stationEntryLogModel);
             }
         },
         showCheckInModal: function(event) {
@@ -51,7 +47,7 @@ define(function(require) {
             }
 
             if (!this.$('#showCheckInModalBtn').hasClass('disabled')) {
-                cicoEvents.trigger(cicoEvents.goToCheckIn, this.stationModel);
+                currentContext.dispatcher.trigger(EventNameEnum.goToCheckIn, this.stationModel);
             }
         },
         showCheckOutModal: function(event) {
@@ -59,7 +55,7 @@ define(function(require) {
                 event.preventDefault();
             }
             if (!this.$('#showCheckOutModalBtn').hasClass('disabled')) {
-                cicoEvents.trigger(cicoEvents.goToCheckOut, this.stationEntryLogModel);
+                currentContext.dispatcher.trigger(EventNameEnum.goToCheckOut, this.stationEntryLogModel);
             }
         },
         goToCheckedInStation: function(event) {
@@ -70,9 +66,9 @@ define(function(require) {
             if (!this.$('#goToCheckedInStationBtn').hasClass('disabled')) {
                 var stationId = this.stationEntryLogModel.get('stationId');
                 if (stationId) {
-                    cicoEvents.trigger(cicoEvents.goToStationWithId, stationId);
+                    currentContext.dispatcher.trigger(EventNameEnum.goToStationWithId, stationId);
                 } else {
-                    cicoEvents.trigger(cicoEvents.goToOpenCheckIn, this.stationEntryLogModel);
+                    currentContext.dispatcher.trigger(EventNameEnum.goToOpenCheckIn, this.stationEntryLogModel);
                 }
             }
         },
@@ -88,7 +84,7 @@ define(function(require) {
                 currentContext.showStationEntryExtendDurationView();
                 currentContext.updateViewFromHazard('out');
             } else {
-                if (this.stationEntryLogModel) {
+                if (this.stationEntryLogModel && this.stationEntryLogModel.has('stationEntryLogId')) {
                     /* if station entry open stationId !== parent view stationId, then show the go to checked-in station UI */
                     currentContext.hideStationEntryActionViews();
                     currentContext.showStationEntryAlreadyCheckedinView(this.stationEntryLogModel.get('stationName'));
@@ -110,14 +106,10 @@ define(function(require) {
                     currentContext.updateViewFromHazard('in');
                 }
             }
-
-            currentContext.trigger('loaded');
+            currentContext.updateLinkedStation();
         },
-        updateViewFromHazard: function(direction) {
-            var whoToCall = 'dispatch desk';
-            if (this.stationModel && this.stationModel.has('hasHazard') && this.stationModel.get('hasHazard')) {
-                this.hideStationEntryActionViews();
-
+        updateLinkedStation: function() {
+            if (this.stationModel) {
                 if (this.stationModel.has('linkedStationId') && this.stationModel.has('linkedStationName') && (this.stationModel.get('linkedStationName').length > 0)) {
                     this.$('.linked-station-name-text-link').text(this.stationModel.get('linkedStationName'));
                     this.showLinkedStationRedirect();
@@ -125,11 +117,15 @@ define(function(require) {
                         this.showLinkedTDStationRedirect();
                     }
                     if (this.stationModel.has('stationType') && this.stationModel.get('stationType') === 'TC') {
-                        whoToCall = 'NOC';
                         this.showLinkedTCStationRedirect();
                     }
                 }
-
+            }
+        },
+        updateViewFromHazard: function(direction) {
+            var whoToCall = 'dispatch desk';
+            if (this.stationModel && this.stationModel.has('hasHazard') && this.stationModel.get('hasHazard')) {
+                this.hideStationEntryActionViews();
                 this.showStationEntryErrorView('A hazard exists for this facility. You must call the ' + whoToCall + ' to check-' + direction + '.');
             }
         },
@@ -145,7 +141,7 @@ define(function(require) {
                 event.preventDefault();
             }
             var linkedStationId = this.stationModel.get('linkedStationId');
-            cicoEvents.trigger(cicoEvents.goToStationWithId, linkedStationId);
+            currentContext.dispatcher.trigger(EventNameEnum.goToStationWithId, linkedStationId);
         },
         hideStationEntryActionViews: function() {
             this.hideStationEntryLoadingView();
@@ -220,6 +216,17 @@ define(function(require) {
         },
         hideLinkedTCStationRedirect: function() {
             this.$('#linked-TC-site-redirect-text-div').addClass('hidden');
+        },
+        onCheckInSuccess: function(newStationEntryLogModel) {
+            this.stationEntryLogModel.set(newStationEntryLogModel.attributes);
+            this.updateViewFromModel();
+        },
+        onExtendDurationSuccess: function(newStationEntryLogModel) {
+            this.stationEntryLogModel.set(newStationEntryLogModel.attributes);
+            this.updateViewFromModel();
+        },
+        onLoaded: function() {
+            this.updateViewFromModel();
         }
     });
 });

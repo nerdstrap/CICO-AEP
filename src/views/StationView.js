@@ -1,119 +1,208 @@
 define(function(require) {
     'use strict';
+    var $ = require('jquery');
+    var _ = require('underscore');
+    var Backbone = require('backbone');
+    var BaseView = require('views/BaseView');
+    var config = require('config');
+    var EventNameEnum = require('enums/EventNameEnum');
+    var StationTypeEnum = require('enums/StationTypeEnum');
+    var StationEntryLogCollection = require('collections/StationEntryLogCollection');
+    var StationEntryLogCollectionView = require('views/StationEntryLogCollectionView');
+    var AbnormalConditionCollection = require('collections/AbnormalConditionCollection');
+    var AbnormalConditionCollectionView = require('views/AbnormalConditionCollectionView');
+    var WarningCollection = require('collections/WarningCollection');
+    var WarningCollectionView = require('views/WarningCollectionView');
+    var template = require('hbs!templates/StationView');
 
-    var $ = require('jquery'),
-            _ = require('underscore'),
-            Backbone = require('backbone'),
-            env = require('env'),
-            CICOLocationModel = require('models/CICOLocationModel'),
-            CompositeView = require('views/base/CompositeView'),
-            NameLinkTypeEnum = require('enums/NameLinkTypeEnum'),
-            StationEntryListTypeEnum = require('enums/StationEntryListTypeEnum'),
-            StationEntryOpenView = require('views/StationEntryOpenView'),
-            StationEntryListView = require('views/StationEntryListView'),
-            AbnormalConditionListView = require('views/AbnormalConditionListView'),
-            StationWarningListView = require('views/StationWarningListView'),
-            template = require('hbs!templates/Station'),
-            stationDataTemplate = require('hbs!templates/StationData'),
-            stationHazardTemplate = require('hbs!templates/HazardInfo'),
-            gpsDistanceTemplate = require('hbs!templates/partial/GpsDistancePartial');
-
-    var StationView = CompositeView.extend({
-        className: 'details-view station-details-view',
-        stationLoadingMessage: 'Getting Station Info...',
-        defaultTitleText: 'Station Info',
-        defaultHazardTitleText: 'Hazard Details',
-        stationErrorMessage: 'Error - Station',
-        getDefaultsForRendering: function() {
-            return {
-                stationLoadingMessage: this.stationLoadingMessage,
-                defaultTitleText: this.defaultTitleText,
-                stationErrorMessage: this.stationErrorMessage,
-                defaultHazardTitleText: this.defaultHazardTitleText
-            };
-        },
+    var StationView = BaseView.extend({
+        /**
+         * 
+         * @param {type} options
+         * @returns {undefined}
+         */
         initialize: function(options) {
             console.debug('StationView.initialize');
             options || (options = {});
             this.dispatcher = options.dispatcher || this;
-            this.locationModel = CICOLocationModel.getInstance();
-
             this.settingsModel = options.settingsModel;
             this.myPersonnelModel = options.myPersonnelModel;
-            this.stationEntryLogCollection = options.stationEntryCollection;
-            this.abnormalConditionCollection = options.abnormalConditionCollection;
-            this.stationWarningCollection = options.stationWarningCollection;
-            this.openStationEntryLogModel = options.stationEntryOpenModel;
-
+            this.openStationEntryLogModel = options.openStationEntryLogModel;
+            this.openStationEntryLogCollection = options.openStationEntryLogCollection || new StationEntryLogCollection();
+            this.recentStationEntryLogCollection = options.recentStationEntryLogCollection || new StationEntryLogCollection();
+            this.abnormalConditionCollection = options.abnormalConditionCollection || new AbnormalConditionCollection();
+            this.warningCollection = options.warningCollection || new WarningCollection();
+            this.listenTo(this.dispatcher, EventNameEnum.checkInSuccess, this.onCheckInSuccess);
+            this.listenTo(this.dispatcher, EventNameEnum.clearWarningSuccess, this.hideStationWarningIndicator);
+            this.listenTo(this.dispatcher, EventNameEnum.addWarningSuccess, this.showStationWarningIndicator);
             this.listenTo(this, 'loaded', this.onLoaded);
+            this.listenTo(this, 'leave', this.onLeave);
         },
+        
+        /**
+         * 
+         * @returns {StationView}
+         */
         render: function() {
             console.debug('StationView.render');
             var currentContext = this;
-            this.$el.html(template());
-
-            var openStationEntryLogViewInstance = new StationEntryOpenView({
+            currentContext.setElement(template());
+            currentContext.renderOpenStationEntryLogCollectionView();
+            currentContext.renderRecentStationEntryLogCollectionView();
+            currentContext.renderAbnormalConditionCollectionView();
+            currentContext.renderWarningCollectionView();
+            return this;
+        },
+        
+        /**
+         * 
+         * @returns {StationView}
+         */
+        renderOpenStationEntryLogCollectionView: function() {
+            var currentContext = this;
+            this.openStationEntryLogCollectionView = new StationEntryLogCollectionView({
                 dispatcher: currentContext.dispatcher,
-                el: $('#stationEntryOpenView', currentContext.$el),
-                stationModel: currentContext.model,
-                stationEntryLogModel: currentContext.openStationEntryLogModel
+                collection: currentContext.stationEntryLogCollection
             });
-            this.renderChild(openStationEntryLogViewInstance);
-
-            var stationOpenCheckInsView = new StationEntryListView({
+            this.renderChildInto(this.openStationEntryLogCollectionView, '.stationCheckIns.open');
+            return this;
+        },
+        
+        /**
+         * 
+         * @returns {StationView}
+         */
+        renderRecentStationEntryLogCollectionView: function() {
+            var currentContext = this;
+            this.recentStationEntryLogCollectionView = new StationEntryLogCollectionView({
                 dispatcher: currentContext.dispatcher,
-                el: $('.stationCheckIns.open', currentContext.$el),
-                collection: currentContext.stationEntryLogCollection,
-                myPersonnelModel: currentContext.myPersonnelModel,
-                stationEntryListType: StationEntryListTypeEnum.open,
-                nameLinkType: NameLinkTypeEnum.personnel
+                collection: currentContext.stationEntryLogCollection
             });
-            this.renderChild(stationOpenCheckInsView);
-
-            var stationRecentCheckInsView = new StationEntryListView({
-                dispatcher: currentContext.dispatcher,
-                collection: currentContext.stationEntryLogCollection,
-                el: $('.stationCheckIns.recent', currentContext.$el),
-                stationModel: currentContext.model,
-                myPersonnelModel: currentContext.myPersonnelModel,
-                stationEntryListType: StationEntryListTypeEnum.historical,
-                nameLinkType: NameLinkTypeEnum.personnel
-            });
-            this.renderChild(stationRecentCheckInsView);
-
-            if (this.model.get('stationType') === 'TD') {
-                var abnormalConditionListView = new AbnormalConditionListView({
+            this.renderChildInto(this.recentStationEntryLogCollectionView, '.stationCheckIns.recent');
+            return this;
+        },
+        
+        /**
+         * 
+         * @returns {StationView}
+         */
+        renderAbnormalConditionCollectionView: function() {
+            var currentContext = this;
+            if (this.model.get('stationType') === StationTypeEnum.td) {
+                this.abnormalConditionCollectionView = new AbnormalConditionCollectionView({
                     dispatcher: currentContext.dispatcher,
                     el: $('#stationAbnormalConditions', currentContext.$el),
                     collection: currentContext.abnormalConditionCollection,
                     myPersonnelModel: currentContext.myPersonnelModel
                 });
-                this.renderChild(abnormalConditionListView);
+                this.renderChild(this.abnormalConditionCollectionView);
             }
-
-            if (this.model.get('stationType') === 'TC') {
-                var stationWarningListView = new StationWarningListView({
-                    dispatcher: currentContext.dispatcher,
-                    el: $('#stationWarnings', currentContext.$el),
-                    collection: currentContext.stationWarningCollection,
-                    myPersonnelModel: currentContext.myPersonnelModel,
-                    stationModel: currentContext.model,
-                    stationEntryLogModel: currentContext.openStationEntryLogModel
-                });
-
-                this.renderChild(stationWarningListView);
-            }
-
             return this;
         },
-        renderWarnings: function() {
-            if (this.model.has('restrictedFlag') && this.model.get('restrictedFlag')) {
-                if (this.settingsModel && this.settingsModel.has('socPhoneNumber')) {
-                    this.$('.soc-info').removeClass('hidden');
-                    this.$('.soc-phone').html(env.getFormattedPhoneNumberLink(this.myPersonnelModel.get('socPhoneNumber')));
-                }
-                this.$('.restricted-text-icon').removeClass('hidden');
+        
+        /**
+         * 
+         * @returns {StationView}
+         */
+        renderWarningCollectionView: function() {
+            var currentContext = this;
+            if (this.model.get('stationType') === StationTypeEnum.tc) {
+                this.warningCollectionView = new WarningCollectionView({
+                    dispatcher: currentContext.dispatcher,
+                    collection: currentContext.warningCollection
+                });
+                this.renderChildInto(this.warningCollectionView, '#stationWarnings');
             }
+            return this;
+        },
+        
+        /**
+         * 
+         */
+        events: {
+            'click a.directions-text-link': 'goToDirections',
+            'click #linked-site-redirect': 'goToLinkedStation',
+            'click #showCheckInModalBtn': 'showCheckInModal',
+            'click #goToCheckedInStationBtn': 'goToCheckedInStation',
+            'click #showExtendDurationModalBtn': 'showExtendDurationModal',
+            'click #showCheckOutModalBtn': 'showCheckOutModal',
+            'click a.sectionButton': 'sectionClick'
+        },
+        
+        /**
+         * 
+         */
+        goToLinkedStation: function(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var currentContext = this;
+            var linkedStationId = this.model.get('linkedStationId');
+            currentContext.dispatcher.trigger(EventNameEnum.goToStationWithId, linkedStationId);
+        },
+        showExtendDurationModal: function(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var currentContext = this;
+            if (!this.$('#showExtendDurationModalBtn').hasClass('disabled')) {
+                currentContext.dispatcher.trigger(EventNameEnum.goToExtendDuration, this.openStationEntryLogModel);
+            }
+        },
+        showCheckInModal: function(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var currentContext = this;
+            if (!this.$('#showCheckInModalBtn').hasClass('disabled')) {
+                currentContext.dispatcher.trigger(EventNameEnum.goToCheckIn, this.model);
+            }
+        },
+        showCheckOutModal: function(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var currentContext = this;
+            if (!this.$('#showCheckOutModalBtn').hasClass('disabled')) {
+                currentContext.dispatcher.trigger(EventNameEnum.goToCheckOut, this.openStationEntryLogModel);
+            }
+        },
+        goToCheckedInStation: function(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var currentContext = this;
+            if (!this.$('#goToCheckedInStationBtn').hasClass('disabled')) {
+                var stationId = this.openStationEntryLogModel.get('stationId');
+                if (stationId) {
+                    currentContext.dispatcher.trigger(EventNameEnum.goToStationWithId, stationId);
+                } else {
+                    currentContext.dispatcher.trigger(EventNameEnum.goToAdHocStationWithId, this.openStationEntryLogModel);
+                }
+            }
+        },
+        sectionClick: function(event) {
+            var currentContext = this;
+            if ($(event.target).closest('section').hasClass('disabled')) {
+                return false;
+            }
+            else {
+                $('html, body').animate({
+                    scrollTop: $(event.target).closest('section').offset().top
+                }, 250);
+            }
+        },
+        updateCheckInControls: function() {
+            var currentContext = this;
+            this.openStationEntryLogView = new StationEntryOpenView({
+                dispatcher: currentContext.dispatcher,
+                stationModel: currentContext.model,
+                stationEntryLogModel: currentContext.openStationEntryLogModel
+            });
+            this.renderChildInto(this.openStationEntryLogView, '#stationEntryOpenView');
+            return this;
+        },
+        updateIndicators: function() {
             if (this.model.has('hasHazard') && this.model.get('hasHazard')) {
                 this.$('.hazard-text-icon').removeClass('hidden');
                 var hazardModel = _.extend({}, this.model.attributes, this.getDefaultsForRendering());
@@ -125,7 +214,6 @@ define(function(require) {
         },
         updateViewFromModel: function() {
             var currentContext = this;
-
             if (this.model.has('stationType') && this.model.get('stationType') === 'TC') {
                 this.$('.telecom-text-icon').removeClass('hidden');
                 if (this.model.has("linkedStationId") && this.model.has('linkedStationName') && (this.model.get('linkedStationName').length > 0)) {
@@ -153,56 +241,26 @@ define(function(require) {
         },
         updateViewFromModelAfterGps: function() {
             this.$('.station-name').html(this.model.get('stationName'));
-
             this.setDispatchCenterDetails(
                     '.transmission-dispatch-center',
                     this.model.get('transmissionDispatchCenterId'),
                     this.model.get('transmissionDispatchCenterName'),
                     this.model.get('transmissionDispatchCenterPhone'));
-
             this.setDispatchCenterDetails(
                     '.distribution-dispatch-center',
                     this.model.get('distributionDispatchCenterId'),
                     this.model.get('distributionDispatchCenterName'),
                     this.model.get('distributionDispatchCenterPhone'));
-
             this.setDispatchCenterDetails(
                     '.noc-dispatch-center',
                     this.model.get('nocDispatchCenterId'),
                     this.model.get('nocDispatchCenterName'),
                     this.model.get('nocDispatchCenterPhone'));
-
             var renderModel = _.extend({}, this.model.attributes, this.getDefaultsForRendering());
-
             this.$('#stationData').html(stationDataTemplate(renderModel));
-
-            this.renderWarnings();
+            this.updateIndicators();
             this.setDirectionLink();
             this.showDispatchCenterIndicator();
-        },
-        events: {
-            'click a.sectionButton': 'sectionClick',
-            'click a.directions-text-link': 'goToDirections'
-        },
-        sectionClick: function(event) {
-            if ($(event.target).closest('section').hasClass('disabled')) {
-                return false;
-            }
-            else {
-                $('html, body').animate({
-                    scrollTop: $(event.target).closest('section').offset().top
-                }, 250);
-            }
-        },
-        goToDirections: function(event) {
-            if (event) {
-                event.preventDefault();
-            }
-            this.dispatcher.trigger('goToDirections', this.model);
-        },
-        setDirectionLink: function() {
-            var currentContext = this;
-            currentContext.$('.station-distance-directions').html(gpsDistanceTemplate(this.model.attributes));
         },
         showDispatchCenterIndicator: function() {
             if (this.openStationEntryLogModel) {
@@ -224,28 +282,71 @@ define(function(require) {
                 $('.dispatch-phone', containerSelector).html(env.getFormattedPhoneNumberLink(phone));
             }
         },
-        getRecentStationEntries: function() {
-            this.stationEntryLogCollection.getRecentStationEntriesByStationId(this.model.get('stationId'), this.model.get('stationType'));
+        refreshOpenStationEntryLogCollection: function() {
+            var currentContext = this;
+            var stationId = currentContext.model.get('stationId');
+            var stationType = currentContext.model.get('stationType');
+            var options = {
+                stationId: stationId,
+                stationType: stationType,
+                open: true
+            };
+            currentContext.dispatcher.trigger(EventNameEnum.refreshStationEntryLogCollection, currentContext.openStationEntryLogCollection, options);
         },
-        getAbnormalConditions: function() {
-            if (this.model.get('stationType') === 'TD') {
-                this.abnormalConditionCollection.getAbnormalConditionsByStationId(this.model.get('stationId'));
+        refreshRecentStationEntryLogCollection: function() {
+            var currentContext = this;
+            var stationId = currentContext.model.get('stationId');
+            var stationType = currentContext.model.get('stationType');
+            var options = {
+                stationId: stationId,
+                stationType: stationType,
+                recent: true
+            };
+            currentContext.dispatcher.trigger(EventNameEnum.refreshStationEntryLogCollection, currentContext.recentStationEntryLogCollection, options);
+        },
+        refreshAbnormalConditionCollection: function() {
+            var currentContext = this;
+            if (currentContext.model.get('stationType') === StationTypeEnum.td) {
+                var stationId = currentContext.model.get('stationId');
+                currentContext.dispatcher.trigger(EventNameEnum.refreshAbnormalConditionCollection, currentContext.abnormalConditionCollection, {stationId: stationId});
             }
         },
-        getStationWarnings: function() {
-            if (this.model.get('stationType') === 'TC') {
-                this.stationWarningCollection.getStationWarningsByStationId(this.model.get('stationId'));
+        refreshWarningCollection: function() {
+            var currentContext = this;
+            if (this.model.get('stationType') === StationTypeEnum.tc) {
+                var stationId = currentContext.model.get('stationId');
+                currentContext.dispatcher.trigger(EventNameEnum.refreshWarningCollection, currentContext.warningCollection, {stationId: stationId});
             }
+        },
+        goToDirections: function(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var currentContext = this;
+            var latitude = this.model.get('latitude');
+            var longitude = this.model.get('longitude');
+            this.dispatcher.trigger(EventNameEnum.goToDirectionsWithLatLng, latitude, longitude);
+        },
+        onAddWarningSuccess: function() {
+            var currentContext = this;
+            this.$('.warning-text-icon').addClass('hidden');
+        },
+        onClearWarningSuccess: function() {
+            var currentContext = this;
+            this.$('.warning-text-icon').removeClass('hidden');
         },
         onLoaded: function() {
-            this.$('.wait-for-loaded').removeClass('wait-for-loaded');
-            this.$('.station-primary-details-loading').hide();
+            var currentContext = this;
+            this.$('.station-loading-indicator').hide();
             this.updateViewFromModel();
-            this.getRecentStationEntries();
-            this.getAbnormalConditions();
-            this.getStationWarnings();
+            this.refreshOpenStationEntryLogCollection();
+            this.refreshRecentStationEntryLogCollection();
+            this.refreshAbnormalConditionCollection();
+            this.refreshWarningCollection();
+        },
+        onLeave: function() {
+            var currentContext = this;
         }
     });
-
     return StationView;
 });

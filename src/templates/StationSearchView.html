@@ -1,0 +1,29 @@
+<div class="station-search-view">
+    <h1 class="text-headline">{{resource "stationSearchViewHeaderText"}}</h1>
+    <ul class="button-group radius even-3">            
+        <li>
+            <a id="search-by-gps-button" class="button radius small" href="#">{{resource "gpsButtonText"}}</a>
+        </li>
+        <li>
+            <a id="search-by-name-button" class="button radius small secondary" href="#">{{resource "manualButtonText"}}</a>
+        </li>
+        <li>
+            <a id="search-by-recent-button" class="button radius small secondary" href="#">{{resource "recentButtonText"}}</a>
+        </li>
+    </ul>
+    <div id="station-type-filter-container" class="row hidden">
+        <div class="small-12 columns input-column">
+            <label>{{resource "stationTypeHeaderText"}}</label>
+            <input id="include-dol-input" type="checkbox" checked><label for="include-dol-input">{{resource "dolStationTypeHeaderText"}}</label>
+            <input id="include-noc-input" type="checkbox" checked><label for="include-noc-input">{{resource "nocStationTypeHeaderText"}}</label>
+        </div>
+    </div>
+    <div id="manual-search-input-container" class="row hidden">
+        <div class="small-12 columns">
+            <input id="manual-search-input" type="search" class="manual-search-input" placeholder="{{resource 'manualSearchPlaceholder'}}" />
+            <a id="clear-manual-search-input-button" href="#" class="hidden"><i class="fa {{resource 'clearButtonIcon'}}"></i></a>
+        </div>
+    </div>
+    <div id="station-collection-view-container">
+    </div>
+</div>

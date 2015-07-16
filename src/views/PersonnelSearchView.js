@@ -1,285 +1,313 @@
 define(function(require) {
-
     'use strict';
 
-    var $ = require('jquery'),
-            highlight = require('jquery-highlight'),
-            _ = require('underscore'),
-            Backbone = require('backbone'),
-            CompositeView = require('views/base/CompositeView'),
-            SearchMethodsEnum = require('enums/SearchMethodsEnum'),
-            env = require('env'),
-            PersonnelListView = require('views/PersonnelListView'),
-            NearbyStationEntryListView = require('views/NearbyStationEntryListView'),
-            template = require('hbs!templates/PersonnelSearch'),
-            cicoEvents = require('cico-events');
+    var $ = require('jquery');
+    var _ = require('underscore');
+    var Backbone = require('backbone');
+    var BaseView = require('views/BaseView');
+    var PersonnelCollectionView = require('views/PersonnelCollectionView');
+    var PersonnelCollection = require('collections/PersonnelCollection');
+    var EventNameEnum = require('enums/EventNameEnum');
+    var SearchMethodEnum = require('enums/SearchMethodEnum');
+    var PersonnelTypeEnum = require('enums/PersonnelTypeEnum');
+    var template = require('hbs!templates/PersonnelSearchView');
 
-    var PersonnelSearchView = CompositeView.extend({
-        className: 'search-view personnel-search-view',
+    var PersonnelSearchView = BaseView.extend({
         initialize: function(options) {
-            console.debug('PersonnelSearchView.initialize');
             options || (options = {});
-            this.controller = options.controller;
             this.dispatcher = options.dispatcher || this;
+            this.myPersonnelModel = options.myPersonnelModel;
+            this.openPersonnelEntryLogModel = options.openPersonnelEntryLogModel;
+
             this.searchAttributes = {
-                manualSearchWatermark: 'enter an employee name...',
-                loadingMessage: ' Getting personnel...',
-                loadingMessageGps: ' Getting nearby entries...',
-                errorMessage: 'System not available at this time. Please call the dispatch center to find an employee.',
+                manualSearchWatermark: 'enter a personnel name...',
+                loadingMessage: 'Getting personnels...',
+                errorMessage: 'System not available at this time. Please call the dispatch center to check in.',
                 infoMessage: 'No results.'
             };
-
             this.keyUpDelay = 200;
+            this.searchMethod = SearchMethodEnum.gps;
 
-            _.bindAll(this, 'onFetchSuccess', 'onManualFetchSuccess', 'onFetchError', 'onGpsError');
+            this.listenTo(this.dispatcher, EventNameEnum.checkInSuccess, this.onCheckInSuccess);
+            this.listenTo(this, 'loaded', this.onLoaded);
+            this.listenTo(this, 'leave', this.onLeave);
         },
         render: function() {
             var currentContext = this;
-            this.$el.html(template(this.searchAttributes));
-
-            this.gpsSearchBtn = this.$('#gpsSearchBtn');
-            this.manualSearchBtn = this.$('#gpsSearchBtn');
-            this.clearManualSearch = this.$('#clearManualSearch');
-            this.searchListLoadingControl = this.$('.list-view-loading');
-
-            var searchQuery = currentContext.model.get("searchQuery");
-            if (searchQuery && searchQuery.length > 0) {
-                this.$('.personnel-search-query').val(searchQuery);
-            }
-
-            var personnelListView = new PersonnelListView({
-                collection: currentContext.model.resultsManual,
-                el: $('.manual-personnel-search-list', currentContext.el)
+            currentContext.setElement(template(currentContext.searchAttributes));
+            currentContext.renderPersonnelCollectionView();
+            return this;
+        },
+        renderPersonnelCollectionView: function() {
+            var currentContext = this;
+            currentContext.personnelCollection = new PersonnelCollection();
+            currentContext.personnelCollectionView = new PersonnelCollectionView({
+                dispatcher: currentContext.dispatcher,
+                myPersonnelModel: currentContext.myPersonnelModel,
+                collection: currentContext.personnelCollection
             });
-            this.renderChild(personnelListView);
-
-            var nearbyStationEntryListView = new NearbyStationEntryListView({
-                collection: currentContext.model.resultsGps,
-                el: $('.gps-personnel-search-list', currentContext.el)
-            });
-            this.renderChild(nearbyStationEntryListView);
-
+            currentContext.renderChildInto(currentContext.personnelCollectionView, '#personnel-list-view-container');
             return this;
         },
         events: {
             'click #gpsSearchBtn': 'showGpsSearch',
             'click #manualSearchBtn': 'showManualSearch',
+            'click #recentSearchBtn': 'showRecentSearch',
             'click #clearManualSearchBtn': 'clearManualSearch',
             'keyup .personnel-search-query': 'searchKeyUp',
             'keypress .personnel-search-query': 'onKeyPress',
-            'click .station-name-text-link': 'selectStationItem',
-            'click .personnel-name-text-link': 'selectPersonnelItem',
-            'click .directions-text-link': 'goToDirections'
+            'click #includeDol': 'setPrevFilterPersonnelTypes',
+            'click #includeNoc': 'setPrevFilterPersonnelTypes',
+            'click #showAdHocCheckInModalBtn': 'showAdHocCheckInModal',
+            'click #goToOpenCheckInBtn': 'goToOpenCheckIn'
+        },
+        updateViewFromModel: function() {
+            var currentContext = this;
+            if (currentContext.myPersonnelModel.get('userRole').indexOf('TC') > 0) {
+                currentContext.showPersonnelTypeFilter();
+                if (currentContext.openPersonnelEntryLogModel.has('personnelEntryLogId')) {
+                    currentContext.hideShowAdHocCheckInModalButton();
+                    currentContext.showGoToOpenCheckInButton();
+                } else {
+                    currentContext.showShowAdHocCheckInModalButton();
+                    currentContext.hideGoToOpenCheckInButton();
+                }
+            } else {
+                currentContext.hidePersonnelTypeFilter();
+            }
         },
         onKeyPress: function(event) {
-            var validPattern = /^[A-Za-z0-9\s]*$/;
             if (event) {
                 if (event.keyCode === 13) {
                     /* enter key pressed */
                     event.preventDefault();
                 }
-                var charCode = event.charCode || event.keyCode || event.which;
-                var inputChar = String.fromCharCode(charCode);
-                if (!validPattern.test(inputChar) && event.charCode !== 0) {
-                    return false;
-                    // TODO should this be above the return? or deleted?
-                    event.preventDefault();
-                }
             }
+        },
+        searchKeyUp: function(event) {
+            if (this.searchKeyUp.timeout) {
+                clearTimeout(this.searchKeyUp.timeout);
+            }
+            var currentContext = this;
+            currentContext.searchKeyUp.timeout = setTimeout(function() {
+                currentContext.doSearch.call(currentContext, event);
+            }, currentContext.keyUpDelay);
+            currentContext.showClearSearchButton();
         },
         showGpsSearch: function(event) {
             if (event) {
                 event.preventDefault();
             }
-            this.model.resetPersonnelSearchResults(SearchMethodsEnum.gps);
-            this.hideIndicators();
-            this.hideManualSearchForm();
-            this.$('#gpsSearchBtn').removeClass('cico-default');
-            this.$('#manualSearchBtn').addClass('cico-default');
-            this.$('.manual-personnel-search-list').addClass('hidden');
-            this.$('.gps-personnel-search-list').removeClass('hidden');
-            this.doGpsSearch();
+            var currentContext = this;
+            currentContext.searchMethod = SearchMethodEnum.gps;
+            currentContext.hideIndicators();
+            currentContext.hideManualSearchControls();
+            currentContext.$('#ad-hoc-btn-container').addClass('hidden');
+            currentContext.$('#open-ad-hoc-btn-container').addClass('hidden');
+            currentContext.$('#gpsSearchBtn').removeClass('cico-default');
+            currentContext.$('#manualSearchBtn').addClass('cico-default');
+            currentContext.$('#recentSearchBtn').addClass('cico-default');
+            currentContext.doSearch();
+            return this;
         },
-        showManualSearch: function(event, persistSearchQueryInput) {
+        showManualSearch: function(event) {
             if (event) {
                 event.preventDefault();
             }
-            this.model.resetPersonnelSearchResults(SearchMethodsEnum.manual);
-            this.hideIndicators();
-            if (!persistSearchQueryInput) {
-                this.resetSearchQueryInput();
+            var currentContext = this;
+            currentContext.searchMethod = SearchMethodEnum.manual;
+            currentContext.hideIndicators();
+            currentContext.showClearSearchButton();
+            currentContext.showManualSearchControls();
+            currentContext.$('#manualSearchBtn').removeClass('cico-default');
+            currentContext.$('#gpsSearchBtn').addClass('cico-default');
+            currentContext.$('#recentSearchBtn').addClass('cico-default');
+            currentContext.doSearch();
+            return this;
+        },
+        showRecentSearch: function(event) {
+            if (event) {
+                event.preventDefault();
             }
-            this.showClearSearchButton();
-            this.showManualSearchForm();
-            this.$('#gpsSearchBtn').addClass('cico-default');
-            this.$('#manualSearchBtn').removeClass('cico-default');
-            this.$('.gps-personnel-search-list').addClass('hidden');
-            this.$('.manual-personnel-search-list').removeClass('hidden');
+            var currentContext = this;
+            currentContext.searchMethod = SearchMethodEnum.recent;
+            currentContext.hideIndicators();
+            currentContext.hideManualSearchControls();
+            currentContext.$('#recentSearchBtn').removeClass('cico-default');
+            currentContext.$('#gpsSearchBtn').addClass('cico-default');
+            currentContext.$('#manualSearchBtn').addClass('cico-default');
+            currentContext.doSearch();
+            return this;
         },
         clearManualSearch: function(event) {
             if (event) {
                 event.preventDefault();
                 this.$('.personnel-search-query').focus();
             }
-            this.model.resetPersonnelSearchResults(SearchMethodsEnum.manual);
-            this.hideIndicators();
             this.resetSearchQueryInput();
-        },
-        searchKeyUp: function(event) {
-            if (this.searchKeyUp.timeout) {
-                clearTimeout(this.searchKeyUp.timeout);
-            }
-            var target = this;
-            this.searchKeyUp.timeout = setTimeout(function() {
-                target.doManualSearch.call(target, event);
-            }, target.keyUpDelay);
-
-            this.showClearSearchButton();
-        },
-        showClearSearchButton: function(showButton) {
-            var show = showButton || (this.$('#manualSearchInput').val().length > 0);
-            if (!show) {
-                this.$('#clearManualSearchBtn').hide();
-            }
-            else {
-                this.$('#clearManualSearchBtn').show();
-            }
-        },
-        selectStationItem: function(event) {
-            if (event) {
-                event.preventDefault();
-            }
-            var stationId = $(event.target).data('stationid');
-            var idRegex = /^\d+$/;
-            if(idRegex.test(stationId)) {
-                cicoEvents.trigger(cicoEvents.goToStationWithId, parseInt(stationId));
-            } else {
-                cicoEvents.trigger(cicoEvents.goToStationWithId, stationId);                
-            }
-        },
-        selectPersonnelItem: function(event) {
-            if (event) {
-                event.preventDefault();
-            }
-            var outsideId = $(event.target).closest('.text-link').data('outsideid');
-            if (outsideId) {
-                this.controller.goToPersonnelWithId(outsideId);
-            }
-            else {
-                var userName = $(event.target).closest('.text-link').data('username');
-                if (userName) {
-                    this.controller.goToPersonnelWithName(userName);
-                }
-            }
-        },
-        showManualSearchForm: function() {
-            this.$('.manual-search-form').removeClass('hidden');
-        },
-        hideManualSearchForm: function() {
-            this.$('.manual-search-form').addClass('hidden');
-        },
-        showLoading: function(message) {
-            if (message) {
-                this.$('.search-view-loading .text-detail').html(message);
-            }
-            this.$('.search-view-loading').removeClass('hidden');
-        },
-        hideLoading: function() {
-            this.$('.search-view-loading').addClass('hidden');
-        },
-        showError: function(message) {
-            if (message) {
-                this.$('.search-view-error .text-detail').html(message);
-            }
-            else {
-                this.$('.search-view-error .text-detail').html(this.searchAttributes.errorMessage);
-            }
-            this.$('.search-view-error').removeClass('hidden');
-        },
-        hideError: function() {
-            this.$('.search-view-error').addClass('hidden');
-        },
-        showInfo: function(message) {
-            if (message) {
-                this.$('.search-view-info .text-detail').html(message);
-            }
-            this.$('.search-view-info').removeClass('hidden');
-        },
-        hideInfo: function() {
-            this.$('.search-view-info').addClass('hidden');
-        },
-        hideIndicators: function() {
-            this.hideLoading();
-            this.hideError();
-            this.hideInfo();
+            this.hideIndicators();
         },
         resetSearchQueryInput: function() {
             this.$('.personnel-search-query').val('');
             this.showClearSearchButton();
         },
-        doSearch: function() {
+        showClearSearchButton: function(showButton) {
+            var show = showButton || (this.$('#manualSearchInput').val().length > 0);
+            if (show) {
+                this.$('#clearManualSearchBtn').show();
+            }
+            else {
+                this.$('#clearManualSearchBtn').hide();
+            }
+        },
+        showPersonnelTypeFilter: function() {
             var currentContext = this;
-            if (currentContext.model.get("searchMethod") === SearchMethodsEnum.manual) {
-                currentContext.showManualSearch(null, true);
-                currentContext.doManualSearch();
-            } else {
-                currentContext.showGpsSearch();
-            }
+            currentContext.$('#personnel-type-filter-container').removeClass('hidden');
+            return this;
         },
-        doManualSearch: function(event) {
-            var searchQuery = this.$('.personnel-search-query').val();
-            if (!searchQuery || searchQuery.length < 2) {
-                this.model.resetPersonnelSearchResults(SearchMethodsEnum.manual);
-                this.hideIndicators();
-            } else {
-                this.hideIndicators();
-                this.showLoading();
-                this.model.performManualPersonnelSearch(searchQuery, this.onManualFetchSuccess, this.onFetchError);
-            }
-        },
-        doGpsSearch: function() {
-            this.hideIndicators();
-            this.showLoading();
-            this.model.performGpsPersonnelSearch(this.onFetchSuccess, this.onFetchError);
-        },
-        onFetchSuccess: function(searchResultsCollection) {
-            this.hideIndicators();
-            if (!searchResultsCollection || searchResultsCollection.length === 0) {
-                this.showInfo();
-            }
-        },
-        onManualFetchSuccess: function(searchResultsCollection) {
+        hidePersonnelTypeFilter: function() {
             var currentContext = this;
-            this.hideIndicators();
-            if (searchResultsCollection.length > 0) {
-                var searchQuery = this.model.get("searchQuery");
-                if (searchQuery && searchQuery.length > 2) {
-                    var searchTerms = this.model.get("searchQuery").split(' ');
-                    _.each(searchTerms, function(searchTerm) {
-                        $('.manual-personnel-search-list', currentContext.el).highlight(searchTerm);
-                    });
-                }
-            } else {
-                this.showInfo();
-            }
+            currentContext.$('#personnel-type-filter-container').addClass('hidden');
+            return this;
         },
-        onGpsError: function(errorMessage) {
-            this.hideIndicators();
-            this.showError(errorMessage);
+        showManualSearchControls: function() {
+            var currentContext = this;
+            currentContext.$('#manual-search-controls-container').removeClass('hidden');
+            return this;
         },
-        onFetchError: function(errorMessage) {
-            this.hideIndicators();
-            this.showError(errorMessage);
+        hideManualSearchControls: function() {
+            var currentContext = this;
+            currentContext.$('#manual-search-controls-container').addClass('hidden');
+            return this;
         },
-        goToDirections: function(event) {
+        showShowAdHocCheckInModalButton: function() {
+            var currentContext = this;
+            currentContext.$('#go-to-ad-hoc-btn-container').removeClass('hidden');
+            return this;
+        },
+        hideShowAdHocCheckInModalButton: function() {
+            var currentContext = this;
+            currentContext.$('#go-to-ad-hoc-btn-container').addClass('hidden');
+            return this;
+        },
+        showGoToOpenCheckInButton: function() {
+            var currentContext = this;
+            currentContext.$('#go-to-open-entry-btn-container').removeClass('hidden');
+            return this;
+        },
+        hideGoToOpenCheckInButton: function() {
+            var currentContext = this;
+            currentContext.$('#go-to-open-entry-btn-container').addClass('hidden');
+            return this;
+        },
+        hideIndicators: function() {
+            var currentContext = this;
+            currentContext.hideLoading();
+            currentContext.hideError();
+            currentContext.hideInfo();
+            return this;
+        },
+        showLoading: function(message) {
+            var currentContext = this;
+            currentContext.$('.search-view-loading').removeClass('hidden');
+            return this;
+        },
+        hideLoading: function() {
+            var currentContext = this;
+            currentContext.$('.search-view-loading').addClass('hidden');
+            return this;
+        },
+        showError: function(message) {
+            var currentContext = this;
+            currentContext.$('.search-view-error .text-detail').text(message);
+            currentContext.$('.search-view-error').removeClass('hidden');
+            return this;
+        },
+        hideError: function() {
+            var currentContext = this;
+            currentContext.$('.search-view-error .text-detail').text('');
+            currentContext.$('.search-view-error').addClass('hidden');
+            return this;
+        },
+        showInfo: function(message) {
+            var currentContext = this;
+            currentContext.$('.search-view-info .text-detail').text(message);
+            currentContext.$('.search-view-info').removeClass('hidden');
+            return this;
+        },
+        hideInfo: function() {
+            var currentContext = this;
+            currentContext.$('.search-view-info .text-detail').text('');
+            currentContext.$('.search-view-info').addClass('hidden');
+            return this;
+        },
+        doSearch: function(event) {
             if (event) {
                 event.preventDefault();
             }
-            var latitude = $(event.target).data('latitude');
-            var longitude = $(event.target).data('longitude');
-            if (latitude && longitude) {
-                this.controller.goToDirectionsLatLon(latitude, longitude);
+            var currentContext = this;
+
+            var options = {
+            };
+
+            if (currentContext.$("#includeDol").prop("checked") && currentContext.$("#includeNoc").prop("checked")) {
+                options.includeNoc = true;
+                options.includeDol = true;
+            } else if (currentContext.$("#includeDol").prop("checked")) {
+                options.includeDol = true;
+            } else if (currentContext.$("#includeNoc").prop("checked")) {
+                options.includeNoc = true;
             }
+
+            if (currentContext.searchMethod === SearchMethodEnum.manual) {
+                var personnelName = currentContext.$('.personnel-search-query').val();
+                if (personnelName.length > 1) {
+                    options.personnelName = personnelName;
+                } else {
+                    return this;
+                }
+            }
+
+            if (currentContext.searchMethod === SearchMethodEnum.gps) {
+                currentContext.dispatcher.trigger(EventNameEnum.refreshPersonnelCollectionByGps, currentContext.personnelCollection, options);
+            } else {
+                currentContext.dispatcher.trigger(EventNameEnum.refreshPersonnelCollection, currentContext.personnelCollection, options);
+            }
+            return this;
+        },
+        goToAdHocCheckIn: function(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var currentContext = this;
+
+            if (!this.$('#showAdHocCheckInModalBtn').hasClass('disabled')) {
+                this.dispatcher.trigger(currentContext.dispatcher.goToAdHocCheckIn);
+            }
+        },
+        goToOpenCheckIn: function(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var currentContext = this;
+
+            if (!this.$('#goToOpenCheckInBtn').hasClass('disabled')) {
+                var personnelEntryLogId = this.openPersonnelEntryLogModel.get('personnelEntryLogId');
+                this.dispatcher.trigger(currentContext.dispatcher.goToOpenCheckInWithId, personnelEntryLogId);
+            }
+        },
+        onCheckInSuccess: function(newPersonnelEntryLogModel) {
+            var currentContext = this;
+            this.openPersonnelEntryLogModel.set(newPersonnelEntryLogModel.attributes);
+            this.updateViewFromModel();
+        },
+        onLoaded: function() {
+            var currentContext = this;
+            this.updateViewFromModel();
+            this.doSearch();
+        },
+        onLeave: function() {
+            var currentContext = this;
         }
     });
 

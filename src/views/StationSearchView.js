@@ -1,73 +1,170 @@
 define(function(require) {
-
     'use strict';
 
-    var $ = require('jquery'),
-            _ = require('underscore'),
-            Backbone = require('backbone'),
-            CompositeView = require('views/base/CompositeView'),
-            SearchMethodsEnum = require('enums/SearchMethodsEnum'),
-            FilterStationTypeEnum = require('enums/FilterStationTypeEnum'),
-            env = require('env'),
-            StationListView = require('views/StationListView'),
-            template = require('hbs!templates/StationSearch'),
-            cicoEvents = require('cico-events');
+    var $ = require('jquery');
+    var _ = require('underscore');
+    var Backbone = require('backbone');
+    var BaseView = require('views/BaseView');
+    var EventNameEnum = require('enums/EventNameEnum');
+    var SearchMethodEnum = require('enums/SearchMethodEnum');
+    var StationTypeEnum = require('enums/StationTypeEnum');
+    var StationCollection = require('collections/StationCollection');
+    var StationCollectionView = require('views/StationCollectionView');
+    var template = require('hbs!templates/StationSearchView');
 
-    var StationSearchView = CompositeView.extend({
-        className: 'search-view station-search-view',
+    var StationSearchView = BaseView.extend({
+        
+        /**
+         * 
+         * @param {type} options
+         * @returns {StationSearchView}
+         */
         initialize: function(options) {
-            console.debug('StationSearchView.initialize');
             options || (options = {});
             this.dispatcher = options.dispatcher || this;
             this.myPersonnelModel = options.myPersonnelModel;
-            this.searchAttributes = {
-                manualSearchWatermark: 'enter a station name...',
-                loadingMessage: 'Getting stations...',
-                errorMessage: 'System not available at this time. Please call the dispatch center to check in.',
-                infoMessage: 'No results.'
-            };
-            this.listenToOnce(this.myPersonnelModel, 'change', this.hideFilterStation);
+            this.openStationEntryLogModel = options.openStationEntryLogModel;
+
             this.keyUpDelay = 200;
+            this.searchMethod = SearchMethodEnum.gps;
 
-            _.bindAll(this, 'onFetchSuccess', 'onFetchError', 'onGpsError');
-        },
-        render: function() {
-            var currentContext = this;
-            this.$el.html(template(this.searchAttributes));
-
-            this.gpsSearchBtn = this.$('#gpsSearchBtn');
-            this.manualSearchBtn = this.$('#gpsSearchBtn');
-            this.recentSearchBtn = this.$('#recentSearchBtn');
-            this.clearManualSearch = this.$('#clearManualSearch');
-            this.searchListLoadingControl = this.$('.list-view-loading');
-
-            var searchQuery = currentContext.model.get("searchQuery");
-            if (searchQuery && searchQuery.length > 0) {
-                this.$('.station-search-query').val(searchQuery);
-            }
-
-            var stationListView = new StationListView({
-                collection: currentContext.model.results,
-                el: $('.station-search-list', currentContext.el),
-                dispatcher: currentContext.dispatcher
-            });
-            this.renderChild(stationListView);
-            this.hideFilterStation();
+            this.listenTo(this.dispatcher, EventNameEnum.checkInSuccess, this.onCheckInSuccess);
+            this.listenTo(this, 'loaded', this.onLoaded);
+            this.listenTo(this, 'leave', this.onLeave);
             return this;
         },
-        events: {
-            'click #gpsSearchBtn': 'showGpsSearch',
-            'click #manualSearchBtn': 'showManualSearch',
-            'click #recentSearchBtn': 'showRecentSearch',
-            'click #clearManualSearchBtn': 'clearManualSearch',
-            'keyup .station-search-query': 'searchKeyUp',
-            'keypress .station-search-query': 'onKeyPress',
-            'click #filterTDStations': 'setPrevFilterStationTypes',
-            'click #filterTComStations': 'setPrevFilterStationTypes',
-            'click #showAdHocCheckInModalBtn': 'showAdHocCheckInModal',
-            'click #goToOpenCheckInBtn': 'goToOpenCheckIn'
+        
+        /**
+         * 
+         * @returns {StationSearchView}
+         */
+        render: function() {
+            var currentContext = this;
+            currentContext.setElement(template());
+            currentContext.renderStationCollectionView();
+            return this;
         },
-        onKeyPress: function(event) {
+        
+        /**
+         * 
+         * @returns {StationSearchView}
+         */
+        renderStationCollectionView: function() {
+            var currentContext = this;
+            currentContext.stationCollection = new StationCollection();
+            currentContext.stationCollectionView = new StationCollectionView({
+                dispatcher: currentContext.dispatcher,
+                myPersonnelModel: currentContext.myPersonnelModel,
+                collection: currentContext.stationCollection
+            });
+            currentContext.renderChildInto(currentContext.stationCollectionView, '#station-collection-view-container');
+            return this;
+        },
+        
+        /**
+         * 
+         */
+        events: {
+            'click #search-by-gps-button': 'searchByGps',
+            'click #search-by-name-button': 'searchByName',
+            'click #search-by-recent-button': 'searchByRecent',
+            'click #clear-manual-search-input-button': 'clearManualSearch',
+            'keyup .manual-search-input': 'manualSearchKeyUp',
+            'keypress .manual-search-input': 'manualSearchKeyPress',
+            'click #include-dol-input': 'setPrevFilterStationTypes',
+            'click #include-noc-input': 'setPrevFilterStationTypes'
+        },
+        
+        /**
+         * 
+         * @returns {StationSearchView}
+         */
+        updateViewFromModel: function() {
+            var currentContext = this;
+            if (currentContext.myPersonnelModel && currentContext.myPersonnelModel.has('userRole') && currentContext.myPersonnelModel.get('userRole').indexOf('TC') > 0) {
+                currentContext.showStationTypeFilter();
+            } else {
+                currentContext.hideStationTypeFilter();
+            }
+            return this;
+        },
+        
+        /**
+         * 
+         * @param {type} event
+         */
+        searchByGps: function(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var currentContext = this;
+            currentContext.searchMethod = SearchMethodEnum.gps;
+            currentContext.$('#search-by-gps-button').removeClass('secondary');
+            currentContext.$('#search-by-name-button').addClass('secondary');
+            currentContext.$('#search-by-recent-button').addClass('secondary');
+            currentContext.clearManualSearchInput();
+            currentContext.hideManualSearchInput();
+            currentContext.doSearch();
+            return this;
+        },
+        
+        /**
+         * 
+         * @param {type} event
+         */
+        searchByName: function(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var currentContext = this;
+            currentContext.searchMethod = SearchMethodEnum.manual;
+            currentContext.$('#search-by-gps-button').removeClass('secondary');
+            currentContext.$('#search-by-name-button').addClass('secondary');
+            currentContext.$('#search-by-recent-button').addClass('secondary');
+            currentContext.doSearch();
+            return this;
+        },
+        
+        /**
+         * 
+         * @param {type} event
+         */
+        searchByRecent: function(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var currentContext = this;
+            currentContext.searchMethod = SearchMethodEnum.recent;
+            currentContext.$('#search-by-gps-button').removeClass('secondary');
+            currentContext.$('#search-by-name-button').addClass('secondary');
+            currentContext.$('#search-by-recent-button').addClass('secondary');
+            currentContext.clearManualSearchInput();
+            currentContext.hideManualSearchInput();
+            currentContext.doSearch();
+            return this;
+        },
+        
+        /**
+         * 
+         * @param {type} event
+         * @returns {undefined}
+         */
+        manualSearchKeyUp: function(event) {
+            var currentContext = this;
+            if (this.searchKeyUp.timeout) {
+                window.clearTimeout(currentContext.manualSearchKeyUp.timeout);
+            }
+            currentContext.searchKeyUp.timeout = window.setTimeout(function() {
+                currentContext.doSearch.call(currentContext, event);
+            }, currentContext.keyUpDelay);
+            currentContext.showClearManualSearchInputButton();
+        },
+        
+        /**
+         * 
+         * @param {type} event
+         */
+        manualSearchKeyPress: function(event) {
             if (event) {
                 if (event.keyCode === 13) {
                     /* enter key pressed */
@@ -75,272 +172,129 @@ define(function(require) {
                 }
             }
         },
-        showGpsSearch: function(event) {
-            if (event) {
-                event.preventDefault();
-            }
-            this.model.resetStationSearchResults(SearchMethodsEnum.gps);
-            this.hideIndicators();
-            this.hideManualSearchForm();
-            this.$('#ad-hoc-btn-container').addClass('hidden');
-            this.$('#open-ad-hoc-btn-container').addClass('hidden');
-            this.$('#gpsSearchBtn').removeClass('cico-default');
-            this.$('#manualSearchBtn').addClass('cico-default');
-            this.$('#recentSearchBtn').addClass('cico-default');
-            this.doGpsSearch();
+        
+        /**
+         * 
+         * @returns {StationSearchView}
+         */
+        clearManualSearchInput: function() {
+            var currentContext = this;
+            currentContext.$('.manual-search-input').val('');
+            currentContext.hideClearManualSearchInputButton();
+            return this;
         },
-        showManualSearch: function(event, persistSearchQueryInput) {
-            if (event) {
-                event.preventDefault();
-            }
-            this.model.resetStationSearchResults(SearchMethodsEnum.manual);
-            this.hideIndicators();
-            if (!persistSearchQueryInput) {
-                this.resetSearchQueryInput();
-            }
-
-            this.checkUserRole();
-            this.showClearSearchButton();
-            this.showManualSearchForm();
-            this.$('#manualSearchBtn').removeClass('cico-default');
-            this.$('#gpsSearchBtn').addClass('cico-default');
-            this.$('#recentSearchBtn').addClass('cico-default');
+        
+        /**
+         * 
+         * @returns {StationSearchView}
+         */
+        showManualSearchInput: function() {
+            var currentContext = this;
+            currentContext.$('#manual-search-input-container').removeClass('hidden');
+            return this;
         },
-        showRecentSearch: function(event) {
-            if (event) {
-                event.preventDefault();
-            }
-            this.model.resetStationSearchResults(SearchMethodsEnum.recent);
-            this.hideIndicators();
-            this.hideManualSearchForm();
-            this.$('#ad-hoc-btn-container').addClass('hidden');
-            this.$('#open-ad-hoc-btn-container').addClass('hidden');
-            this.$('#recentSearchBtn').removeClass('cico-default');
-            this.$('#gpsSearchBtn').addClass('cico-default');
-            this.$('#manualSearchBtn').addClass('cico-default');
-            this.doRecentSearch();
+        
+        /**
+         * 
+         * @returns {StationSearchView}
+         */
+        hideManualSearchInput: function() {
+            var currentContext = this;
+            currentContext.$('#manual-search-input-container').addClass('hidden');
+            return this;
         },
-        clearManualSearch: function(event) {
-            if (event) {
-                event.preventDefault();
-                this.$('.station-search-query').focus();
-            }
-            this.model.resetStationSearchResults(SearchMethodsEnum.manual);
-            this.hideIndicators();
-            this.resetSearchQueryInput();
+        
+        /**
+         * 
+         * @returns {StationSearchView}
+         */
+        showClearManualSearchInputButton: function() {
+            var currentContext = this;
+            currentContext.$('#clear-manual-search-input-button').removeClass('hidden');
+            return this;
         },
-        showClearSearchButton: function(showButton) {
-            var show = showButton || (this.$('#manualSearchInput').val().length > 0);
-            if (show) {
-                this.$('#clearManualSearchBtn').show();
-            }
-            else {
-                this.$('#clearManualSearchBtn').hide();
-            }
+        
+        /**
+         * 
+         * @returns {StationSearchView}
+         */
+        hideClearManualSearchInputButton: function() {
+            var currentContext = this;
+            currentContext.$('#clear-manual-search-input-button').addClass('hidden');
+            return this;
         },
-        searchKeyUp: function(event) {
-            if (this.searchKeyUp.timeout) {
-                clearTimeout(this.searchKeyUp.timeout);
-            }
-            var target = this;
-            this.searchKeyUp.timeout = setTimeout(function() {
-                target.doManualSearch.call(target, event);
-            }, target.keyUpDelay);
-
-            this.showClearSearchButton();
+        
+        /**
+         * 
+         * @returns {StationSearchView}
+         */
+        showStationTypeFilter: function() {
+            var currentContext = this;
+            currentContext.$('#station-type-filter-container').removeClass('hidden');
+            return this;
         },
-        showManualSearchForm: function() {
-            this.$('.manual-search-form').removeClass('hidden');
+        
+        /**
+         * 
+         * @returns {StationSearchView}
+         */
+        hideStationTypeFilter: function() {
+            var currentContext = this;
+            currentContext.$('#station-type-filter-container').addClass('hidden');
+            return this;
         },
-        hideManualSearchForm: function() {
-            this.$('.manual-search-form').addClass('hidden');
-        },
-        showLoading: function(message) {
-            if (message) {
-                this.$('.search-view-loading .text-detail').html(message);
-            }
-            this.$('.search-view-loading').removeClass('hidden');
-        },
-        hideLoading: function() {
-            this.$('.search-view-loading').addClass('hidden');
-        },
-        showError: function(message) {
-            if (message) {
-                this.$('.search-view-error .text-detail').html(message);
-            }
-            else {
-                this.$('.search-view-error .text-detail').html(this.searchAttributes.errorMessage);
-            }
-            this.$('.search-view-error').removeClass('hidden');
-        },
-        hideError: function() {
-            this.$('.search-view-error').addClass('hidden');
-        },
-        showInfo: function(message) {
-            if (message) {
-                this.$('.search-view-info .text-detail').html(message);
-            }
-            this.$('.search-view-info').removeClass('hidden');
-        },
-        hideInfo: function() {
-            this.$('.search-view-info').addClass('hidden');
-        },
-        hideIndicators: function(skipLoading, skipError, skipInfo) {
-            if (!skipLoading) {
-                this.hideLoading();
-            }
-            if (!skipError) {
-                this.hideError();
-            }
-            if (!skipInfo) {
-                this.hideInfo();
-            }
-        },
-        resetSearchQueryInput: function() {
-            this.$('.station-search-query').val('');
-            this.showClearSearchButton();
-        },
+        
+        /**
+         * 
+         * @returns {StationSearchView}
+         */
         doSearch: function() {
             var currentContext = this;
-            if (currentContext.model.get("searchMethod") === SearchMethodsEnum.manual) {
-                currentContext.showManualSearch(null, true);
-                currentContext.doManualSearch();
+
+            var options = {
+            };
+
+            if (currentContext.$("#include-dol-input").prop("checked") && currentContext.$("#include-dol-input").prop("checked")) {
+                options.includeNoc = true;
+                options.includeDol = true;
+            } else if (currentContext.$("#include-dol-input").prop("checked")) {
+                options.includeDol = true;
+            } else if (currentContext.$("#include-noc-input").prop("checked")) {
+                options.includeNoc = true;
             }
-            else if (currentContext.model.get("searchMethod") === SearchMethodsEnum.recent) {
-                currentContext.showRecentSearch();
-            }
-            else {
-                currentContext.showGpsSearch();
-            }
-        },
-        doManualSearch: function(event) {
-            var filterStationTypes = this.getFilterStationTypes();
-            if (filterStationTypes !== null) {
-                var searchQuery = this.$('.station-search-query').val();
-                if (!searchQuery || searchQuery.length < 2) {
-                    this.model.resetStationSearchResults(SearchMethodsEnum.manual);
-                    this.hideIndicators();
+
+            if (currentContext.searchMethod === SearchMethodEnum.manual) {
+                var stationName = currentContext.$('.manual-search-input').val();
+                if (stationName.length > 1) {
+                    options.stationName = stationName;
                 } else {
-                    this.hideIndicators();
-                    this.showLoading();
-                    this.model.performManualStationSearchWithGps(searchQuery, this.onFetchSuccess, this.onFetchError, this.onGpsError, filterStationTypes);
+                    return this;
                 }
             }
-        },
-        doGpsSearch: function() {
-            var filterStationTypes = this.getFilterStationTypes();
-            if (filterStationTypes !== null) {
-                this.hideIndicators();
-                this.showLoading();
-                this.model.performGpsStationSearch(this.onFetchSuccess, this.onFetchError, filterStationTypes);
-            }
-        },
-        doRecentSearch: function() {
-            var filterStationTypes = this.getFilterStationTypes();
-            if (filterStationTypes !== null) {
-                this.hideIndicators();
-                this.showLoading();
-                this.model.performRecentStationSearchWithGps(this.onFetchSuccess, this.onFetchError, this.onGpsError, filterStationTypes);
-            }
-        },
-        getFilterStationTypes: function() {
 
-            if (this.$("#filterTDStations").prop("checked") && this.$("#filterTComStations").prop("checked")) {
-                return FilterStationTypeEnum.TDTC;
-            } else if (this.$("#filterTDStations").prop("checked")) {
-                return FilterStationTypeEnum.TD;
-            } else if (this.$("#filterTComStations").prop("checked")) {
-                return FilterStationTypeEnum.TC;
+            if (currentContext.searchMethod === SearchMethodEnum.gps) {
+                currentContext.dispatcher.trigger(EventNameEnum.refreshStationCollectionByGps, currentContext.stationCollection, options);
             } else {
-                return null;
+                currentContext.dispatcher.trigger(EventNameEnum.refreshStationCollection, currentContext.stationCollection, options);
             }
-            ;
+            return this;
         },
-        setPrevFilterStationTypes: function() {
-            var filterStationTypes = this.getFilterStationTypes();
-            this.model.set('prevFilterStationTypes', filterStationTypes);
-        },
-        hideFilterStation: function() {
-            if (this.myPersonnelModel.get('userRole') === FilterStationTypeEnum.TDTC) {
-                this.$("#filter-station").removeClass("hidden");
-
-                if (this.model.get('prevFilterStationTypes')) {
-                    if (this.model.get('prevFilterStationTypes') === FilterStationTypeEnum.TDTC) {
-                        this.$("#filterTDStations").prop("checked", true);
-                        this.$("#filterTComStations").prop("checked", true);
-                    } else if (this.model.get('prevFilterStationTypes') === FilterStationTypeEnum.TD) {
-                        this.$("#filterTDStations").prop("checked", true);
-                        this.$("#filterTComStations").prop("checked", false);
-                    } else if (this.model.get('prevFilterStationTypes') === FilterStationTypeEnum.TC) {
-                        this.$("#filterTDStations").prop("checked", false);
-                        this.$("#filterTComStations").prop("checked", true);
-                    } else {
-                        this.$("#filterTDStations").prop("checked", true);
-                        this.$("#filterTComStations").prop("checked", true);
-                    }
-                } else {
-                    this.$("#filterTDStations").prop("checked", true);
-                    this.$("#filterTComStations").prop("checked", true);
-                }
-                this.doSearch();
-            } else if (this.myPersonnelModel.get('userRole') === FilterStationTypeEnum.TD) {
-                this.$("#filterTDStations").prop("checked", true);
-                this.$("#filterTComStations").prop("checked", false);
-                this.doSearch();
-            } 
-        },
-        onFetchSuccess: function(searchResultsCollection) {
-            this.hideIndicators(false, true, false);
-            if (!searchResultsCollection || searchResultsCollection.length === 0) {
-                this.showInfo();
-            }
-        },
-        onGpsError: function(errorMessage) {
-            this.showError(errorMessage);
-        },
-        onFetchError: function(errorMessage) {
-            this.hideIndicators();
-            this.showError(errorMessage);
-        },
-        showAdHocCheckInModal: function(event) {
-            if (event) {
-                event.preventDefault();
-            }
-
-            if (!this.$('#showAdHocCheckInModalBtn').hasClass('disabled')) {
-                this.dispatcher.trigger('goToAdHocCheckIn');
-            }
-        },
-        checkUserRole: function() {
+        
+        /**
+         * 
+         */
+        onLoaded: function() {
+            console.trace('StationSearchView.onLoaded');
             var currentContext = this;
-            if (this.model.appDataModel.get('userRole') === FilterStationTypeEnum.TDTC){
-                currentContext.showAdHocCheckInBtn();
-            } else {
-                currentContext.hideAdHocCheckInBtn();
-            }
+            currentContext.updateViewFromModel();
+            this.doSearch();
         },
-        hideAdHocCheckInBtn: function() {    
-            this.$('#ad-hoc-btn-container').addClass('hidden');
-            this.$('#open-ad-hoc-btn-container').addClass('hidden');
-        },
-        showAdHocCheckInBtn: function() {    
-            var openStationEntry = this.model.appDataModel.get('openStationEntry');
-            if (openStationEntry) {
-                this.$('#open-ad-hoc-btn-container').removeClass('hidden');
-                this.$('#ad-hoc-btn-container').addClass('hidden');
-            } else {
-                this.$('#open-ad-hoc-btn-container').addClass('hidden');
-                this.$('#ad-hoc-btn-container').removeClass('hidden');
-            }
-        },
-        goToOpenCheckIn: function(event) {
-            if (event) {
-                event.preventDefault();
-            }
-
-            if (!this.$('#goToOpenCheckInBtn').hasClass('disabled')) {
-                this.dispatcher.trigger(cicoEvents.goToOpenCheckIn);
-            }
+        
+        /**
+         * 
+         */
+        onLeave: function() {
+            console.trace('StationSearchView.onLeave');
         }
     });
 
