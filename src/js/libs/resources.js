@@ -24,9 +24,13 @@ define(function(require) {
         "dolStationTypeHeaderText": "T&D",
         "nocStationTypeHeaderText": "TCOM",
         "manualSearchPlaceholder": "enter a station name",
-        "clearButtonIcon": "9",
+        "clearIcon": "fa-close",
+        "adHocCheckInButtonText": "Ad-hoc Check-in",
+        "stationCollectionLoadingMessageText": "Loading Stations",
+        "loadingMessageText": "loading",
         "loadingImageSrc": "images/loading.gif",
         "loadingImageAlt": "loading",
+        "noResultsMessageText": "No Results",
         "infoIcon": "fa-info-circle",
         "hazardIcon": "fa-exclamation-triangle",
         "warningIcon": "fa-exclamation-triangle",
@@ -34,7 +38,22 @@ define(function(require) {
         "distanceFormatString":"{0} miles",
         "coordinatesUnavailableErrorMessage": "gps unavailable",
         "directionsButtonText": "directions",
-        "directionsIcon": "fa-map-marker"
+        "directionsIcon": "fa-map-marker",
+        "stationDetailLoadingMessageText": "Loading Station Details",
+        "checkInButtonText": "check-in",
+        "editCheckInButtonText": "edit check-in",
+        "checkOutButtonText": "check-out",
+        "openCheckInButtonText": "open check-in",
+        "hazardNotificationMessage": "hazard check in",
+        "expectedCheckOutTextFormatString": "expected check out {0}",
+        "tdcHeaderText": "TDC",
+        "ddcHeaderText": "DDC",
+        "nocHeaderText": "NOC",
+        "checkIcon": "fa-check",
+        "adHocCheckInHeaderText": "Ad-hoc Check-in",
+        "descriptionHeaderText": "ad-hoc",
+        "descriptionPlaceholder": "description",
+        "cancelButtonText": "cancel"
     };
     if (Object.freeze) {
         Object.freeze(resources);

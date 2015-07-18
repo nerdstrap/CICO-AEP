@@ -107,9 +107,9 @@ define(function(require) {
         updateDistanceLabel: function() {
             var currentContext = this;
             var formattedDistance;
-            if (currentContext.model.has('distanceInMiles') && currentContext.model.has('latitude') && currentContext.model.has('longitude')) {
+            if (currentContext.model.has('distance') && currentContext.model.has('latitude') && currentContext.model.has('longitude')) {
                 currentContext.hasCoordinates = true;
-                var distance = currentContext.model.get('distanceInMiles').toFixed(2);
+                var distance = currentContext.model.get('distance').toFixed(2);
                 formattedDistance = utils.formatString(utils.getResource('distanceFormatString'), [distance]);
             } else {
                 formattedDistance = utils.getResource('coordinatesUnavailableErrorMessage');

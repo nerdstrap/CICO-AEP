@@ -1,114 +1,120 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
     var _ = require('underscore');
     var Backbone = require('backbone');
     var BaseView = require('views/BaseView');
-    var config = require('config');
     var EventNameEnum = require('enums/EventNameEnum');
-    var template = require('hbs!templates/AbnormalConditionCollectionView');
+    var StationTileView = require('views/StationTileView');
+    var utils = require('utils');
+    var template = require('hbs!templates/StationCollectionView');
 
-    var AbnormalConditionCollectionView = BaseView.extend({
-        conditionsLoadingMessage: 'Getting Conditions...',
-        defaultTitleText: 'Abnormal Conditions',
-        conditionsErrorMessage: 'Error - Conditions',
-        getDefaultsForRendering: function() {
-            return {
-                conditionsLoadingMessage: this.conditionsLoadingMessage,
-                defaultTitleText: this.defaultTitleText,
-                conditionsErrorMessage: this.conditionsLoadingMessage
-            };
-        },
-        initialize: function(options) {
-            console.debug('AbnormalConditionCollectionView.initialize');
+    var StationCollectionView = BaseView.extend({
+        /**
+         *
+         * @param options
+         */
+        initialize: function (options) {
             options || (options = {});
             this.dispatcher = options.dispatcher || this;
-            this.listenTo(this.collection, 'reset', this.addAll);
-            this.listenTo(this.collection, 'error', this.handleServiceError);
+
+            this.listenTo(this.collection, 'sync', this.onSync);
+            this.listenTo(this.collection, 'reset', this.onReset);
+            this.listenTo(this.collection, 'error', this.onReset);
+            this.listenTo(this, 'loaded', this.onLoaded);
+            this.listenTo(this, 'leave', this.onLeave);
         },
-        events: {
-            'click .section-button': 'toggleContent'
-        },
-        render: function() {
-            console.debug('AbnormalConditionCollectionView.render');
-            var renderModel = this.getDefaultsForRendering();
-            this.$el.html(template(renderModel));
+        /**
+         *
+         * @returns {StationCollectionView}
+         */
+        render: function () {
+            var currentContext = this;
+            currentContext.setElement(template());
             return this;
         },
-        addAll: function() {
-            var currentContext = this;
-            console.debug('AbnormalConditionCollectionView.addAll');
-            currentContext._leaveChildren();
-            _.each(currentContext.collection.models, currentContext.addOne, currentContext);
 
-            var selfCount = currentContext.collection.models.length;
-            if (selfCount < 1) {
-                currentContext.$el.addClass('hidden');
-            }
-            else {
-                currentContext.$('.conditions-loading').addClass('hidden');
-                currentContext.$('.conditions-error').addClass('hidden');
-                currentContext.$('.conditions-title').removeClass('hidden');
-            }         
-        },
-        addOne: function(abnormalCondition) {
+        /**
+         *
+         * @param stationModel
+         * @returns {StationCollectionView}
+         */
+        appendTile: function (stationModel) {
             var currentContext = this;
-            var abnormalConditionTileView = new AbnormalConditionTileView({
-                model: abnormalCondition,
-                dispatcher: currentContext.dispatcher
+            var stationTileView = new StationTileView({
+                'dispatcher': currentContext.dispatcher,
+                'model': stationModel
             });
-            this.appendChildTo(abnormalConditionTileView, '.abnormal-conditions');
+            currentContext.appendChildTo(stationTileView, '.tile-wrap');
+            return this;
         },
-        handleServiceError: function() {
-            this.hideLoading();
-            this.disable();
-            this.showError('Error - Conditions');
+        /**
+         *
+         */
+        onSync: function () {
+            var currentContext = this;
+            currentContext.hideMessage();
+            currentContext.$('.station-collection-loading-image-container').removeClass('hidden');
         },
-        disable: function() {
-            this.$el.addClass('disabled');
-        },
-        enable: function() {
-            this.$el.removeClass('disabled');
-        },
-        toggleContent: function(event) {
-            if (event) {
-                if ($(event.target).closest('section').hasClass('disabled')) {
-                    event.preventDefault();
-                    return false;
-                }
+
+        /**
+         *
+         */
+        onReset: function () {
+            var currentContext = this;
+            currentContext.hideMessage();
+            if (currentContext.collection.models && currentContext.collection.models.length < 1) {
+                currentContext.showMessage(utils.getResource('noResultsMessageText'));
             }
+            currentContext._leaveChildren();
+            _.each(currentContext.collection.models, currentContext.appendTile, currentContext);
+            currentContext.$('.station-collection-loading-image-container').addClass('hidden');
         },
-        openContent: function() {
-            this.$el.addClass('active');
+
+        /**
+         *
+         */
+        onError: function (error) {
+            var currentContext = this;
+            currentContext.$('.station-collection-loading-image-container').addClass('hidden');
+            currentContext.showMessage(error);
         },
-        collapseContent: function() {
-            this.$el.removeClass('active');
+
+        /**
+         *
+         * @param messageText
+         */
+        showMessage: function (messageText) {
+            var currentContext = this;
+            currentContext.$('.station-collection-message-container').removeClass('hidden');
+            currentContext.$('.station-collection-message-label').text(messageText);
         },
-        showLoading: function(loadingText) {
-            this.$(".conditions-loading").removeClass('hidden');
-            this.$(".loading-text-label").html(loadingText);
+
+        /**
+         *
+         */
+        hideMessage: function () {
+            var currentContext = this;
+            currentContext.$('.station-collection-message-label').text('');
+            currentContext.$('.station-collection-message-container').addClass('hidden');
         },
-        hideLoading: function() {
-            this.$(".conditions-loading").addClass('hidden');
+
+        /**
+         *
+         */
+        onLoaded: function () {
+            console.trace('StationCollectionView.onLoaded');
         },
-        showTitle: function(titleText){
-            this.$(".conditions-title").removeClass('hidden');
-            this.$(".title-text-label").html(titleText);
-        },
-        hideTitle: function(){
-            this.$(".conditions-title").addClass('hidden');
-        },
-        showError: function(errorText) {
-            this._leaveChildren();
-            this.$(".conditions-error").removeClass('hidden');
-            this.$(".error-text-label").html(errorText);
-        },
-        hideError: function() {
-            this.$(".conditions-error").addClass('hidden');
+
+        /**
+         *
+         */
+        onLeave: function () {
+            console.trace('StationCollectionView.onLeave');
         }
     });
 
-    return AbnormalConditionCollectionView;
+    return StationCollectionView;
 
 });

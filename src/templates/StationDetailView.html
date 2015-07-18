@@ -1,0 +1,68 @@
+<div class="station-detail-view">
+    <div class="card-wrap">
+        <div class="card station-detail-loading-image-container">
+            <span class="loading-message">{{resource "stationDetailLoadingMessageText"}}</span>
+            <img class="loading-image" src="{{resource 'loadingImageSrc'}}" alt="{{resource 'loadingImageAlt'}}"/>
+        </div>
+        <div class="card hidden wait-for-loaded">
+
+            <h1 id="station-name-label" class="text-center"></h1>
+
+            <div class="">
+                <span id="distance-label"></span>&nbsp;|&nbsp;<a id="go-to-directions-button" href="#" tabindex="0"><i class="fa {{resource 'directionsIcon'}}"></i>{{resource 'directionsButtonText'}}</a>
+            </div>
+
+            <div id="check-in-container" class="hidden">
+                <a id="go-to-check-in-button" class="button radius success" href="#" tabindex="0">{{resource "checkInButtonText"}}</a>
+            </div>
+            <div id="check-out-container" class="hidden">
+                <a id="go-to-edit-check-in-button" class="button radius" href="#" tabindex="0">{{resource "editCheckInButtonText"}}</a>
+                <div id="expected-check-out-container">
+                    <span id="expected-check-out-label"></span>
+                </div>
+                <a id="go-to-check-out-button" class="button radius warning" href="#" tabindex="0">{{resource "checkOutButtonText"}}</a>
+            </div>
+
+            <div id="open-check-in-container" class="hidden">
+                <a id="go-to-open-check-in-button" class="button radius secondary" href="#" tabindex="0">{{resource "openCheckInButtonText"}}</a>
+            </div>
+
+            <div id="hazard-notification-container" class="hidden">
+                <span id="hazard-notification-label" class="alert"></span>
+            </div>
+
+            <div id="tdc-dispatcher-container" class="hidden">
+                <span>{{resource "tdcHeaderText"}}</span><span class="tdc-dispatcher-phone-label"></span><i id="tdc-check-in-icon" class="fa {{resource 'checkIcon'}}"></i>
+            </div>
+            <div id="ddc-dispatcher-container" class="hidden">
+                <span>{{resource "ddcHeaderText"}}</span><span class="ddc-dispatcher-phone-label"></span><i id="ddc-check-in-icon" class="fa {{resource 'checkIcon'}}"></i>
+            </div>
+            <div id="noc-dispatcher-container" class="hidden">
+                <span>{{resource "nocHeaderText"}}</span><span class="tcom-dispatcher-phone-label"></span><i id="noc-check-in-icon" class="fa {{resource 'checkIcon'}}"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="tile-wrap hidden wait-for-loaded">
+
+        <div id="hazard-detail-container" class="hidden">
+            <span id="hazard-detail-label"></span>
+        </div>
+
+        <div id="station-data-view-container" class="">
+        </div>
+
+        <div id="open-station-entry-log-collection-view-container">
+        </div>
+
+        <div id="recent-station-entry-log-collection-view-container">
+        </div>
+
+        <div id="abnormal-station-condition-collection-view-container">
+        </div>
+
+        <div id="warning-collection-view-container">
+        </div>
+
+    </div>
+</div>

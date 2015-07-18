@@ -1,0 +1,124 @@
+@import '../../foundation/components/global';
+
+//
+// @variables
+//
+$include-html-tile-classes: $include-html-classes !default;
+
+// We use these to control the background and border styles
+$tile-bg: scale-color($white, $lightness: -5%) !default;
+$tile-border-style: solid !default;
+$tile-border-size: 1px !default;
+
+// We use this % to control how much we darken things on hover
+$tile-border-color: scale-color($tile-bg, $lightness: -11%) !default;
+
+// We use these to set default inner padding and bottom margin
+$tile-margin-bottom: rem-calc(20) !default;
+$tile-padding: rem-calc(20) !default;
+
+// We use these to set default font colors
+$tile-font-color: $oil !default;
+$tile-font-color-alt: $white !default;
+
+$tile-header-adjust: true !default;
+//
+// @mixins
+//
+// We use this mixin to create tiles.
+// $bg - Sets the tile background color. Default: $tile-pg || scale-color($white, $lightness: -5%) !default
+// $padding - Sets the tile padding amount. Default: $tile-padding || rem-calc(20)
+// $adjust - Sets the font color based on the darkness of the bg & resets header line-heights for tiles. Default: $tile-header-adjust || true
+@mixin tile($bg:$tile-bg, $padding:$tile-padding, $adjust:$tile-header-adjust, $border:true, $box-shadow:true) {
+
+  @if $bg {
+    $bg-lightness: lightness($bg);
+
+    @if $box-shadow {
+      box-shadow: 0 -1px 0 #000, 0 0 2px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+
+    @if $border {
+      border-style: $tile-border-style;
+      border-width: $tile-border-size;
+      border-color: $tile-border-color;
+    } @else {
+      border-style: none;
+      border-width: 0;
+    }
+
+    margin-bottom: $tile-margin-bottom;
+    padding: $padding;
+
+    position: relative;
+
+    background: $bg;
+    @if $bg-lightness >= 50% {
+      color: $tile-font-color;
+    } @else {
+      color: $tile-font-color-alt;
+    }
+
+    // Respect the padding, fool.
+    > :first-child {
+      margin-top: 0;
+    }
+    > :last-child {
+      margin-bottom: 0;
+    }
+
+    @if $adjust {
+      // We set the font color based on the darkness of the bg.
+      @if $bg-lightness >= 50% {
+        h1, h2, h3, h4, h5, h6, p, li, dl {
+          color: $tile-font-color;
+        }
+      } @else {
+        h1, h2, h3, h4, h5, h6, p, li, dl {
+          color: $tile-font-color-alt;
+        }
+      }
+
+      // reset header line-heights for tiles
+      h1, h2, h3, h4, h5, h6 {
+        line-height: 1;
+        margin-bottom: rem-calc(20) / 2;
+        &.subheader {
+          line-height: 1.4;
+        }
+      }
+    }
+  }
+}
+
+@include exports("tile") {
+  @if $include-html-tile-classes {
+
+    /* Panels */
+    .tile {
+      @include tile;
+    }
+
+  }
+}
+
+.tile-wrap {
+  margin-bottom: $tile-margin-bottom;
+  position: relative;
+}
+
+[data-toggle="tile"] {
+  cursor: pointer;
+  display: block;
+  display: flex;
+  flex: 1;
+  [data-ignore="tile"] {
+    cursor: default;
+    cursor: initial;
+  }
+  // no flexbox
+  .no-flexbox & {
+    @include clearfix();
+  }
+}
+

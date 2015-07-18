@@ -1,6 +1,10 @@
 <div class="station-collection-view">
-    <div class="collection-loading hidden">
-        <img src="{{resource 'loadingImageSrc'}}" alt="loadingImageAlt" />
+    <div class="station-collection-loading-image-container hidden">
+        <span class="loading-message">{{resource "stationCollectionLoadingMessageText"}}</span>
+        <img class="loading-image" src="{{resource 'loadingImageSrc'}}" alt="{{resource 'loadingImageAlt'}}" />
+    </div>
+    <div class="station-collection-message-container hidden">
+        <span class="station-collection-message-label"></span>
     </div>
     <div class="tile-wrap"></div>
 </div>

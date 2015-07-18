@@ -8,7 +8,7 @@ define(function(require) {
     var PersonnelModel = require('models/PersonnelModel');
     var StationEntryLogModel = require('models/StationEntryLogModel');
     var StationSearchView = require('views/StationSearchView');
-    var StationView = require('views/StationView');
+    var StationDetailView = require('views/StationDetailView');
     var AdHocStationView = require('views/AdHocStationView');
     var EventNameEnum = require('enums/EventNameEnum');
     var StationTypeEnum = require('enums/StationTypeEnum');
@@ -94,25 +94,25 @@ define(function(require) {
 
             var myPersonnelModel = new PersonnelModel();
             var openStationEntryLogModel = new StationEntryLogModel();
-            var stationView = new StationView({
+            var stationDetailView = new StationDetailView({
                 dispatcher: currentContext.dispatcher,
                 model: stationModel,
                 myPersonnelModel: myPersonnelModel,
                 openStationEntryLogModel: openStationEntryLogModel
             });
 
-            currentContext.router.swapContent(stationView);
+            currentContext.router.swapContent(stationDetailView);
             currentContext.router.navigate('station/' + stationId);
 
             $.when(currentContext.persistenceContext.getMyPersonnelAndOpenStationEntryLogs(myPersonnelModel, openStationEntryLogModel), currentContext.persistenceContext.getStationById(stationModel))
                     .done(function() {
                         currentContext.dispatcher.trigger(EventNameEnum.myIdentityReset, myPersonnelModel);
                         currentContext.dispatcher.trigger(EventNameEnum.openEntryLogReset, openStationEntryLogModel);
-                        stationView.trigger('loaded');
-                        deferred.resolve(stationView);
+                        stationDetailView.trigger('loaded');
+                        deferred.resolve(stationDetailView);
                     })
                     .fail(function(error) {
-                        stationView.trigger('error');
+                        stationDetailView.trigger('error');
                         deferred.reject(error);
                     });
 

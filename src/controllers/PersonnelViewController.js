@@ -5,6 +5,7 @@ define(function(require) {
     var _ = require('underscore');
     var Backbone = require('backbone');
     var PersonnelModel = require('models/PersonnelModel');
+    var StationEntryLogModel = require('models/StationEntryLogModel');
     var PersonnelSearchView = require('views/PersonnelSearchView');
     var PersonnelView = require('views/PersonnelView');
     var EventNameEnum = require('enums/EventNameEnum');

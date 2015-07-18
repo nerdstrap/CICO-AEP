@@ -1,46 +1,88 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
     var _ = require('underscore');
     var Backbone = require('backbone');
     var BaseModalView = require('views/BaseModalView');
-    var config = require('config');
     var EventNameEnum = require('enums/EventNameEnum');
-    var validation = require('backbone-validation');
     var template = require('hbs!templates/ConfirmationModalView');
 
     var ConfirmationModalView = BaseModalView.extend({
         initialize: function (options) {
-            console.debug("ConfirmationView.initialize");
             options || (options = {});
-            this.confirmationMessage = options.confirmationMessage;
+            this.dispatcher = options.dispatcher || this;
+
+            this.listenTo(this, 'loaded', this.onLoaded);
+            this.listenTo(this, 'leave', this.onLeave);
         },
 
+        /**
+         *
+         * @returns {ConfirmationModalView}
+         */
         render: function () {
-            console.debug("ConfirmationView.render");
-            this.$el.addClass("hidden");
-            this.$el.html(template({
-                confirmationMessage: this.confirmationMessage,
-                confirmationType: this.confirmationType
-            }));
+            var currentContext = this;
+            currentContext.$el.html(template());
             return this;
         },
 
-        beforeShow: function (confirmationMessage,confirmationType) {
-            this.confirmationMessage = confirmationMessage;
-            this.confirmationType = confirmationType;
-            this.render();
-            this.$el.removeClass("hidden");
-            return true;
+        /**
+         *
+         * @returns {ConfirmationModalView}
+         */
+        show: function (confirmationType, header, message) {
+            var currentContext = this;
+            currentContext.updateConfirmationHeader(header);
+            currentContext.updateConfirmationMessage(message);
+            $('#confirmation-modal-view').foundation('reveal', 'open');
+            return this;
         },
-        events: {
-            "click .closeModal": "closeWindow"
-        },                
-        closeWindow: function() {
-            this.hide();
+
+        /**
+         *
+         * @returns {ConfirmationModalView}
+         */
+        hide: function () {
+            var currentContext = this;
+            $('#confirmation-modal-view').foundation('reveal', 'close');
+            return this;
+        },
+
+        /**
+         *
+         * @returns {ConfirmationModalView}
+         */
+        updateConfirmationHeader: function (header) {
+            var currentContext = this;
+            currentContext.$('#confirmation-header-label').html(header);
+            return this;
+        },
+
+        /**
+         *
+         * @returns {ConfirmationModalView}
+         */
+        updateConfirmationMessage: function (message) {
+            var currentContext = this;
+            currentContext.$('#confirmation-message-label').html(message);
+            return this;
+        },
+
+        /**
+         *
+         */
+        onLoaded: function () {
+            console.trace('StationCollectionView.onLoaded');
+        },
+
+        /**
+         *
+         */
+        onLeave: function () {
+            console.trace('StationCollectionView.onLeave');
         }
     });
 
-return ConfirmationModalView;
+    return ConfirmationModalView;
 });

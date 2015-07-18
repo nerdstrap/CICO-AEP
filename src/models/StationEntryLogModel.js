@@ -1,4 +1,4 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
@@ -16,7 +16,7 @@ define(function(require) {
         idAttribute: 'stationEntryLogId',
         validation: {
             stationId: {
-                required: function() {
+                required: function () {
                     return (this.get('checkInType') === CheckInTypeEnum.station);
                 }
             },
@@ -35,22 +35,22 @@ define(function(require) {
                 required: true
             },
             otherPurpose: {
-                required: function() {
+                required: function () {
                     return (this.get('selectPurpose') === 'Other');
                 }
             },
             description: {
-                required: function() {
+                required: function () {
                     return (this.get('checkInType') === CheckInTypeEnum.adhoc);
                 }
             },
             areaName: {
-                required: function() {
+                required: function () {
                     return (this.get('checkInType') === CheckInTypeEnum.adhoc);
                 }
             },
             regionName: {
-                required: function() {
+                required: function () {
                     return (this.get('checkInType') === CheckInTypeEnum.adhoc);
                 }
             }
@@ -62,7 +62,7 @@ define(function(require) {
          * @param options
          * @returns {EntryLogModel}
          */
-        set: function(key, val, options) {
+        set: function (key, val, options) {
             var attributes;
             if (typeof key === 'object') {
                 attributes = key;
@@ -85,10 +85,17 @@ define(function(require) {
                     }
                 }
 
-                if (attributes.hasOwnProperty('distanceInMiles')) {
-                    var distanceInMiles = attributes.distanceInMiles;
-                    if (distanceInMiles && !isNaN(distanceInMiles)) {
-                        attributes.distanceInMiles = Number(distanceInMiles);
+                if (attributes.hasOwnProperty('distanceInMiles') || attributes.hasOwnProperty('distance')) {
+                    var distance;
+                    if (attributes.hasOwnProperty('distanceInMiles')) {
+                        distance = attributes.distanceInMiles;
+                        delete attributes.distanceInMiles;
+                    }
+                    if (attributes.hasOwnProperty('distance')) {
+                        distance = attributes.distance;
+                    }
+                    if (distance && !isNaN(distance)) {
+                        attributes.distance = Number(distance);
                     }
                 }
 

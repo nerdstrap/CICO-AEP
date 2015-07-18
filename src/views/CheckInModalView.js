@@ -81,8 +81,8 @@ define(function(require) {
                     currentContext.locationModel.getCurrentPosition(
                             function(position) {
                                 var distance = currentContext.locationModel.calculateDistanceFromCurrentPosition(currentContext.stationModel.get('coords'));
-                                currentContext.stationModel.set('distanceInMiles', distance);
-                                currentContext.stationModel.set('hasDistanceWarning', currentContext.stationModel.get('distanceInMiles') > env.getStationCheckinWarningDistance());
+                                currentContext.stationModel.set('distance', distance);
+                                currentContext.stationModel.set('hasDistanceWarning', currentContext.stationModel.get('distance') > env.getStationCheckinWarningDistance());
                                 currentContext.beforeShowAfterGps();
                             },
                             function(error) {
@@ -468,13 +468,13 @@ define(function(require) {
                 currentContext.locationModel.getCurrentPosition(
                         function(position) {
                             var distance = currentContext.locationModel.calculateDistanceFromCurrentPosition(currentContext.stationModel.get('coords'));
-                            currentContext.stationModel.set('distanceInMiles', distance);
-                            currentContext.stationModel.set('hasDistanceWarning', currentContext.stationModel.get('distanceInMiles') > env.getStationCheckinWarningDistance());
+                            currentContext.stationModel.set('distance', distance);
+                            currentContext.stationModel.set('hasDistanceWarning', currentContext.stationModel.get('distance') > env.getStationCheckinWarningDistance());
 
 
-                            if (currentContext.stationModel.get('distanceInMiles')) {
+                            if (currentContext.stationModel.get('distance')) {
                                 currentContext.$('.currentLocationSuccess').show();
-                                currentContext.$('.distanceWarningDistance').html(currentContext.stationModel.get('distanceInMiles'));
+                                currentContext.$('.distanceWarningDistance').html(currentContext.stationModel.get('distance'));
                                 currentContext.$('.currentLocationLoading').hide();
                             }
 

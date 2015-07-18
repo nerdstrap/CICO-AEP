@@ -1,4 +1,4 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
@@ -7,6 +7,7 @@ define(function(require) {
     var StationModel = require('models/StationModel');
     var PersonnelModel = require('models/PersonnelModel');
     var StationEntryLogModel = require('models/StationEntryLogModel');
+    var AdHocCheckInModalView = require('views/AdHocCheckInModalView');
     var CheckInModalView = require('views/CheckInModalView');
     var EditCheckInModalView = require('views/EditCheckInModalView');
     var CheckOutModalView = require('views/CheckOutModalView');
@@ -19,7 +20,7 @@ define(function(require) {
      * @param options
      * @constructor
      */
-    var StationEntryLogViewController = function(options) {
+    var StationEntryLogViewController = function (options) {
         options || (options = {});
         this.initialize.apply(this, arguments);
     };
@@ -29,14 +30,14 @@ define(function(require) {
          *
          * @param options
          */
-        initialize: function(options) {
+        initialize: function (options) {
             console.trace('StationEntryLogViewController.initialize');
             options || (options = {});
             this.router = options.router;
             this.dispatcher = options.dispatcher;
             this.persistenceContext = options.persistenceContext;
 
-            this.listenTo(this.dispatcher, EventNameEnum.goToAdHocLandingWithId, this.goToAdHocLandingWithId);
+            this.listenTo(this.dispatcher, EventNameEnum.goToAdHocStationWithId, this.goToAdHocStationWithId);
             this.listenTo(this.dispatcher, EventNameEnum.goToAdHocCheckIn, this.goToAdHocCheckIn);
             this.listenTo(this.dispatcher, EventNameEnum.goToCheckIn, this.goToCheckIn);
             this.listenTo(this.dispatcher, EventNameEnum.checkIn, this.checkIn);
@@ -49,17 +50,17 @@ define(function(require) {
          *
          * @returns {promise}
          */
-        goToAdHocCheckIn: function() {
+        goToAdHocCheckIn: function () {
             var currentContext = this;
             var deferred = $.Deferred();
 
             var myPersonnelModel = new PersonnelModel();
             var openStationEntryLogModel = new StationEntryLogModel();
-            var stationEntryLogModel = new StationEntryLogModel({checkInType: CheckInTypeEnum.station});
+            var stationEntryLogModel = new StationEntryLogModel({checkInType: CheckInTypeEnum.adHoc});
             var purposeCollection = new Backbone.Collection();
             var durationCollection = new Backbone.Collection();
             var areaCollection = new Backbone.Collection();
-            var checkInView = new CheckInModalView({
+            var adHocCheckInView = new AdHocCheckInModalView({
                 dispatcher: currentContext.dispatcher,
                 myPersonnelModel: myPersonnelModel,
                 openStationEntryLogModel: openStationEntryLogModel,
@@ -68,37 +69,37 @@ define(function(require) {
                 durationCollection: durationCollection,
                 areaCollection: areaCollection
             });
-
-            currentContext.router.swapContent(checkInView);
-            currentContext.router.navigate('adhoc/checkIn');
+            adHocCheckInView.render();
+            $('#ad-hoc-check-in-modal-view-container').append(adHocCheckInView.el);
+            adHocCheckInView.show();
 
             $.when(currentContext.persistenceContext.getMyPersonnelAndOpenStationEntryLogs(myPersonnelModel, openStationEntryLogModel), currentContext.persistenceContext.getOptions(purposeCollection, durationCollection, areaCollection))
-                    .done(function() {
-                        currentContext.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel);
-                        checkInView.trigger('loaded');
-                        deferred.resolve(checkInView);
-                    })
-                    .fail(function(error) {
-                        checkInView.trigger('error');
-                        deferred.reject(error);
-                    });
+                .done(function () {
+                    currentContext.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel);
+                    adHocCheckInView.trigger('loaded');
+                    deferred.resolve(adHocCheckInView);
+                })
+                .fail(function (error) {
+                    adHocCheckInView.trigger('error');
+                    deferred.reject(error);
+                });
 
             return deferred.promise();
         },
-        
+
         /**
          *
          * @param stationId
          * @returns {promise}
          */
-        goToCheckIn: function(stationId) {
+        goToCheckIn: function (stationId) {
             var currentContext = this;
             var deferred = $.Deferred();
 
             var myPersonnelModel = new PersonnelModel();
             var openStationEntryLogModel = new StationEntryLogModel();
             var stationEntryLogModel = new StationEntryLogModel({checkInType: CheckInTypeEnum.station});
-            
+
             var idRegex = /^\d+$/;
             var stationType = StationTypeEnum.td;
             if (idRegex.test(stationId)) {
@@ -110,7 +111,7 @@ define(function(require) {
                 stationId: stationId,
                 stationType: stationType
             });
-            
+
             var purposeCollection = new Backbone.Collection();
             var durationCollection = new Backbone.Collection();
             var areaCollection = new Backbone.Collection();
@@ -129,15 +130,15 @@ define(function(require) {
             currentContext.router.navigate('station/' + stationModel.get('stationId') + '/checkIn');
 
             $.when(currentContext.persistenceContext.getMyPersonnelAndOpenStationEntryLogs(myPersonnelModel, openStationEntryLogModel), currentContext.persistenceContext.getStationById(stationModel), currentContext.persistenceContext.getOptions(purposeCollection, durationCollection, areaCollection))
-                    .done(function() {
-                        currentContext.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel);
-                        checkInView.trigger('loaded');
-                        deferred.resolve(checkInView);
-                    })
-                    .fail(function(error) {
-                        checkInView.trigger('error');
-                        deferred.reject(error);
-                    });
+                .done(function () {
+                    currentContext.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel);
+                    checkInView.trigger('loaded');
+                    deferred.resolve(checkInView);
+                })
+                .fail(function (error) {
+                    checkInView.trigger('error');
+                    deferred.reject(error);
+                });
 
             return deferred.promise();
         },
@@ -146,19 +147,19 @@ define(function(require) {
          * @param stationEntryLogModel
          * @returns {promise}
          */
-        checkIn: function(stationEntryLogModel) {
+        checkIn: function (stationEntryLogModel) {
             var currentContext = this;
             var deferred = $.Deferred();
 
             currentContext.persistenceContext.checkIn(stationEntryLogModel)
-                    .done(function() {
-                        currentContext.dispatcher.trigger(EventNameEnum.checkInSuccess, stationEntryLogModel);
-                        deferred.resolve(stationEntryLogModel);
-                    })
-                    .fail(function(error) {
-                        currentContext.dispatcher.trigger(EventNameEnum.checkInError, error);
-                        deferred.reject(error);
-                    });
+                .done(function () {
+                    currentContext.dispatcher.trigger(EventNameEnum.checkInSuccess, stationEntryLogModel);
+                    deferred.resolve(stationEntryLogModel);
+                })
+                .fail(function (error) {
+                    currentContext.dispatcher.trigger(EventNameEnum.checkInError, error);
+                    deferred.reject(error);
+                });
 
             return deferred.promise();
         },
@@ -167,13 +168,13 @@ define(function(require) {
          * @param currentStationEntryLogModel
          * @returns {promise}
          */
-        goToEditCheckIn: function(currentStationEntryLogModel) {
+        goToEditCheckIn: function (currentStationEntryLogModel) {
             var currentContext = this;
             var deferred = $.Deferred();
 
             var myPersonnelModel = new PersonnelModel();
             var openStationEntryLogModel = new StationEntryLogModel();
-            
+
             var stationId = currentStationEntryLogModel.get('stationId');
             var idRegex = /^\d+$/;
             var stationType = StationTypeEnum.td;
@@ -186,7 +187,7 @@ define(function(require) {
                 stationId: stationId,
                 stationType: stationType
             });
-            
+
             var stationEntryLogModel = new StationEntryLogModel();
             var purposeCollection = new Backbone.Collection();
             var durationCollection = new Backbone.Collection();
@@ -205,15 +206,15 @@ define(function(require) {
             currentContext.router.navigate('stationEntryLog/' + currentStationEntryLogModel.get('stationEntryLogId'));
 
             $.when(currentContext.persistenceContext.getMyPersonnelAndOpenStationEntryLogs(myPersonnelModel, openStationEntryLogModel), currentContext.persistenceContext.getStationEntryLogById(stationEntryLogModel), currentContext.persistenceContext.getStationById(stationModel), currentContext.persistenceContext.getOptions(purposeCollection, durationCollection, areaCollection))
-                    .done(function() {
-                        currentContext.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel);
-                        editCheckInView.trigger('loaded');
-                        deferred.resolve(editCheckInView);
-                    })
-                    .fail(function(error) {
-                        editCheckInView.trigger('error');
-                        deferred.reject(error);
-                    });
+                .done(function () {
+                    currentContext.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel);
+                    editCheckInView.trigger('loaded');
+                    deferred.resolve(editCheckInView);
+                })
+                .fail(function (error) {
+                    editCheckInView.trigger('error');
+                    deferred.reject(error);
+                });
 
             return deferred.promise();
         },
@@ -222,19 +223,19 @@ define(function(require) {
          * @param stationEntryLogModel
          * @returns {promise}
          */
-        editCheckIn: function(stationEntryLogModel) {
+        editCheckIn: function (stationEntryLogModel) {
             var currentContext = this;
             var deferred = $.Deferred();
 
             currentContext.persistenceContext.editCheckIn(stationEntryLogModel)
-                    .done(function() {
-                        currentContext.dispatcher.trigger(EventNameEnum.editCheckInSuccess, stationEntryLogModel);
-                        deferred.resolve(stationEntryLogModel);
-                    })
-                    .fail(function(error) {
-                        currentContext.dispatcher.trigger(EventNameEnum.editCheckInError, error);
-                        deferred.reject(error);
-                    });
+                .done(function () {
+                    currentContext.dispatcher.trigger(EventNameEnum.editCheckInSuccess, stationEntryLogModel);
+                    deferred.resolve(stationEntryLogModel);
+                })
+                .fail(function (error) {
+                    currentContext.dispatcher.trigger(EventNameEnum.editCheckInError, error);
+                    deferred.reject(error);
+                });
 
             return deferred.promise();
         },
@@ -243,13 +244,13 @@ define(function(require) {
          * @param currentStationEntryLogModel
          * @returns {promise}
          */
-        goToCheckOut: function(currentStationEntryLogModel) {
+        goToCheckOut: function (currentStationEntryLogModel) {
             var currentContext = this;
             var deferred = $.Deferred();
 
             var myPersonnelModel = new PersonnelModel();
             var openStationEntryLogModel = new StationEntryLogModel();
-            
+
             var stationId = currentStationEntryLogModel.get('stationId');
             var idRegex = /^\d+$/;
             var stationType = StationTypeEnum.td;
@@ -262,7 +263,7 @@ define(function(require) {
                 stationId: stationId,
                 stationType: stationType
             });
-            
+
             var stationEntryLogModel = new StationEntryLogModel();
             var purposeCollection = new Backbone.Collection();
             var durationCollection = new Backbone.Collection();
@@ -281,15 +282,15 @@ define(function(require) {
             currentContext.router.navigate('stationEntryLog/' + currentStationEntryLogModel.get('stationEntryLogId') + '/checkOut');
 
             $.when(currentContext.persistenceContext.getMyPersonnelAndOpenStationEntryLogs(myPersonnelModel, openStationEntryLogModel), currentContext.persistenceContext.getStationEntryLogById(stationEntryLogModel), currentContext.persistenceContext.getStationById(stationModel), currentContext.persistenceContext.getOptions(purposeCollection, durationCollection, areaCollection))
-                    .done(function() {
-                        currentContext.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel);
-                        checkOutView.trigger('loaded');
-                        deferred.resolve(checkOutView);
-                    })
-                    .fail(function(error) {
-                        checkOutView.trigger('error');
-                        deferred.reject(error);
-                    });
+                .done(function () {
+                    currentContext.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel);
+                    checkOutView.trigger('loaded');
+                    deferred.resolve(checkOutView);
+                })
+                .fail(function (error) {
+                    checkOutView.trigger('error');
+                    deferred.reject(error);
+                });
 
             return deferred.promise();
         },
@@ -298,19 +299,19 @@ define(function(require) {
          * @param stationEntryLogModel
          * @returns {promise}
          */
-        checkOut: function(stationEntryLogModel) {
+        checkOut: function (stationEntryLogModel) {
             var currentContext = this;
             var deferred = $.Deferred();
 
             currentContext.persistenceContext.checkOut(stationEntryLogModel)
-                    .done(function() {
-                        currentContext.dispatcher.trigger(EventNameEnum.checkOutSuccess, stationEntryLogModel);
-                        deferred.resolve(stationEntryLogModel);
-                    })
-                    .fail(function(error) {
-                        currentContext.dispatcher.trigger(EventNameEnum.checkOutError, error);
-                        deferred.reject(error);
-                    });
+                .done(function () {
+                    currentContext.dispatcher.trigger(EventNameEnum.checkOutSuccess, stationEntryLogModel);
+                    deferred.resolve(stationEntryLogModel);
+                })
+                .fail(function (error) {
+                    currentContext.dispatcher.trigger(EventNameEnum.checkOutError, error);
+                    deferred.reject(error);
+                });
 
             return deferred.promise();
         }

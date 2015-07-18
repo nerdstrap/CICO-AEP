@@ -7,7 +7,13 @@ define(function(require) {
     var SwappingRouter = require('routers/SwappingRouter');
     var ShellView = require('views/ShellView');
     var PersistenceContext = require('contexts/PersistenceContext');
-    var AppRepository = require('repositories/AppRepository');
+    var SettingsRepository = require('repositories/SettingsRepository');
+    var StationRepository = require('repositories/StationRepository');
+    var PersonnelRepository = require('repositories/PersonnelRepository');
+    var StationEntryLogRepository = require('repositories/StationEntryLogRepository');
+    var WarningRepository = require('repositories/WarningRepository');
+    var AbnormalConditionRepository = require('repositories/AbnormalConditionRepository');
+    var LookupDataItemRepository = require('repositories/LookupDataItemRepository');
     var ModelMapper = require('mappers/ModelMapper');
     var CoreController = require('controllers/CoreController');
     var StationViewController = require('controllers/StationViewController');
@@ -32,7 +38,13 @@ define(function(require) {
             currentContext.geoLocationService = new GeoLocationService();
 
             //repositories
-            currentContext.repository = new AppRepository();
+            currentContext.settingsRepository = new SettingsRepository();
+            currentContext.stationRepository = new StationRepository();
+            currentContext.personnelRepository = new PersonnelRepository();
+            currentContext.stationEntryLogRepository = new StationEntryLogRepository();
+            currentContext.warningRepository = new WarningRepository();
+            currentContext.abnormalConditionRepository = new AbnormalConditionRepository();
+            currentContext.lookupDataItemRepository = new LookupDataItemRepository();
 
             //mappers
             currentContext.mapper = new ModelMapper();
@@ -40,7 +52,13 @@ define(function(require) {
             //contexts
             currentContext.persistenceContext = new PersistenceContext({
                 geoLocationService: currentContext.geoLocationService,
-                repository: currentContext.repository,
+                settingsRepository: currentContext.settingsRepository,
+                stationRepository: currentContext.stationRepository,
+                personnelRepository: currentContext.personnelRepository,
+                stationEntryLogRepository: currentContext.stationEntryLogRepository,
+                warningRepository: currentContext.warningRepository,
+                abnormalConditionRepository: currentContext.abnormalConditionRepository,
+                lookupDataItemRepository: currentContext.lookupDataItemRepository,
                 mapper: currentContext.mapper
             });
 

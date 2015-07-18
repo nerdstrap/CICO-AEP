@@ -229,3 +229,12 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+bower_components
+node_modules
+.idea
+.idea/jsLibraryMappings.xml
+
+.idea/libraries/CICO_AEP_node_modules.xml
+
+.idea/watcherTasks.xml

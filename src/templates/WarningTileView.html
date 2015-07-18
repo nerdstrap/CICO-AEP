@@ -1,10 +1,16 @@
-<div class="large-6 columns text-body contentData">
-    <span class="warning-input" data-station-warning-id="{{stationWarningId}}">{{warning}}</span>
+<div class="station-tile-view tile">
+
+        <div class="tile-inner">
+            <span class="station-name-label text-overflow"></span>
+            <i class="fa {{resource 'hazardIcon'}} hazard-icon"></i>
+            <i class="fa {{resource 'warningIcon'}} warning-icon"></i>
+            <i class="fa {{resource 'abnormalConditionIcon'}} abnormal-condition-icon"></i>
+            <i class="fa {{resource 'openCheckInIcon'}} open-check-in-icon"></i>
+        </div>
+
+        <div class="inner">
+            <span class="distance-label"></span>&nbsp;|&nbsp;<a class="go-to-directions-button" data-ignore="tile" href="#" tabindex="0"><i class="fa {{resource 'directionsIcon'}}"></i>{{resource 'directionsButtonText'}}</a>
+        </div>
+
+    </div>
 </div>
-<div class="large-3 columns text-detail contentData">
-    {{~ defaultValue firstReportedBy "&nbsp;" safeString=true ~}}
-</div>
-<div class="large-3 columns text-detail contentData">
-    {{~ defaultValue firstReportedDateString "&nbsp;" safeString=true ~}}
-</div>  
- 

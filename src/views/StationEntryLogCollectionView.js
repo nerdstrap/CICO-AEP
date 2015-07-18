@@ -1,159 +1,120 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
     var _ = require('underscore');
     var Backbone = require('backbone');
     var BaseView = require('views/BaseView');
-    var config = require('config');
     var EventNameEnum = require('enums/EventNameEnum');
-    var template = require('hbs!templates/StationEntryCollectionView');
+    var StationTileView = require('views/StationTileView');
+    var utils = require('utils');
+    var template = require('hbs!templates/StationCollectionView');
 
-    var StationEntryCollectionView = BaseView.extend({
-        getEntriesLoadingMessage: function() {
-            if (this.openOnly){
-                return 'Getting Open Check-ins&#8230;';
-            }
-            return 'Getting Recent Check-ins&#8230;';
-        },
-        getEntriesTitleText: function(entriesCount) {
-            if (this.stationEntryListType === StationEntryListTypeEnum.open) {
-                return entriesCount.toString() + ' Checked-in';
-            } else {
-                return 'Recent Check-ins (Yesterday &#38; Today)';
-            }
-            return 'Check-ins';
-        },
-        getNoEntriesTitleText: function() {
-            if (this.stationEntryListType === StationEntryListTypeEnum.open) {
-                return 'No One Checked-in';
-            } else {
-                return 'No Recent Check-ins';
-            }
-            return 'No Check-ins';
-        },
-        getEntriesErrorMessage: function() {
-            if (this.stationEntryListType === StationEntryListTypeEnum.open) {
-                return 'Error&#8212;Open Check-ins';
-            }
-            return 'Error&#8212;Recent Check-ins';
-        },
-        getDefaultsForRendering: function() {
-            return {
-                entriesLoadingMessage: this.getEntriesLoadingMessage(),
-                defaultEntriesTitleText: this.getNoEntriesTitleText(),
-                entriesErrorMessage: this.getEntriesErrorMessage()
-            };
-        },
-        initialize: function(options) {
-            console.debug('StationEntryCollectionView.initialize');
+    var StationCollectionView = BaseView.extend({
+        /**
+         *
+         * @param options
+         */
+        initialize: function (options) {
             options || (options = {});
-            this.myPersonnelModel = options.myPersonnelModel;
-            this.stationEntryListType = options.stationEntryListType || StationEntryListTypeEnum.historical;
-            this.nameLinkType = options.nameLinkType || NameLinkTypeEnum.personnel;
             this.dispatcher = options.dispatcher || this;
 
-            this.listenTo(this.collection, 'reset', this.addAll);
-            this.listenTo(this.collection, 'error', this.handleServiceError);
+            this.listenTo(this.collection, 'sync', this.onSync);
+            this.listenTo(this.collection, 'reset', this.onReset);
+            this.listenTo(this.collection, 'error', this.onReset);
+            this.listenTo(this, 'loaded', this.onLoaded);
+            this.listenTo(this, 'leave', this.onLeave);
         },
-        events: {
-            'click .section-button': 'toggleContent'
-        },
-        render: function() {
-            console.debug('StationEntryCollectionView.render');
-            var renderModel = this.getDefaultsForRendering();
-            this.$el.html(template(renderModel));
+        /**
+         *
+         * @returns {StationCollectionView}
+         */
+        render: function () {
+            var currentContext = this;
+            currentContext.setElement(template());
             return this;
         },
-        addAll: function() {
+
+        /**
+         *
+         * @param stationModel
+         * @returns {StationCollectionView}
+         */
+        appendTile: function (stationModel) {
             var currentContext = this;
+            var stationTileView = new StationTileView({
+                'dispatcher': currentContext.dispatcher,
+                'model': stationModel
+            });
+            currentContext.appendChildTo(stationTileView, '.tile-wrap');
+            return this;
+        },
+        /**
+         *
+         */
+        onSync: function () {
+            var currentContext = this;
+            currentContext.hideMessage();
+            currentContext.$('.station-collection-loading-image-container').removeClass('hidden');
+        },
+
+        /**
+         *
+         */
+        onReset: function () {
+            var currentContext = this;
+            currentContext.hideMessage();
+            if (currentContext.collection.models && currentContext.collection.models.length < 1) {
+                currentContext.showMessage(utils.getResource('noResultsMessageText'));
+            }
             currentContext._leaveChildren();
-
-            var showOpenStationEntriesOnly = (currentContext.stationEntryListType === StationEntryListTypeEnum.open);
-            var entries = _.filter(currentContext.collection.models, function(stationEntry) {
-                return stationEntry.derivedAttributes.checkedOut !== showOpenStationEntriesOnly;
-            });
-
-            if (entries && entries.length > 0) {
-                _.each(entries, currentContext.addOne, currentContext);
-                currentContext.showTitle(this.getEntriesTitleText(entries.length));
-                currentContext.enable();
-                if (currentContext.nameLinkType === NameLinkTypeEnum.station) {
-                    currentContext.openContent();
-                }
-            }
-            else {
-                currentContext.showTitle(currentContext.getNoEntriesTitleText());
-                currentContext.collapseContent();
-                currentContext.disable();
-            }
-            
-            currentContext.hideLoading();
+            _.each(currentContext.collection.models, currentContext.appendTile, currentContext);
+            currentContext.$('.station-collection-loading-image-container').addClass('hidden');
         },
-        addOne: function(stationEntryModel) {
+
+        /**
+         *
+         */
+        onError: function (error) {
             var currentContext = this;
-            var stationEntryTileView = new StationEntryTileView({
-               model: stationEntryModel,
-               nameLinkType: currentContext.nameLinkType,
-               dispatcher: currentContext.dispatcher
-            });
-            this.appendChildTo(stationEntryTileView, '.station-entries');
+            currentContext.$('.station-collection-loading-image-container').addClass('hidden');
+            currentContext.showMessage(error);
         },
-        handleServiceError: function() {
-            this.hideLoading();
-            this.disable();
-            this.showError('Error - Check Ins');
+
+        /**
+         *
+         * @param messageText
+         */
+        showMessage: function (messageText) {
+            var currentContext = this;
+            currentContext.$('.station-collection-message-container').removeClass('hidden');
+            currentContext.$('.station-collection-message-label').text(messageText);
         },
-        disable: function() {
-            this.$el.addClass('disabled');
+
+        /**
+         *
+         */
+        hideMessage: function () {
+            var currentContext = this;
+            currentContext.$('.station-collection-message-label').text('');
+            currentContext.$('.station-collection-message-container').addClass('hidden');
         },
-        enable: function() {
-            this.$el.removeClass('disabled');
+
+        /**
+         *
+         */
+        onLoaded: function () {
+            console.trace('StationCollectionView.onLoaded');
         },
-        showSectionTitle: function(){
-            this.$(".title").removeClass('hidden');
-        },
-        hideSectionTitle: function(){
-            this.$(".title").addClass('hidden');
-        },
-        toggleContent: function(event) {
-            if (event) {
-                if ($(event.target).closest('section').hasClass('disabled')) {
-                    event.preventDefault();
-                    return false;
-                }
-            }
-        },
-        openContent: function() {
-            this.$el.addClass('active');
-        },
-        collapseContent: function() {
-            this.$el.removeClass('active');
-        },
-        showLoading: function(loadingText) {
-            this.$(".entries-loading").removeClass('hidden');
-            this.$(".loading-text-label").html(loadingText);
-        },
-        hideLoading: function() {
-            this.$(".entries-loading").addClass('hidden');
-        },
-        showTitle: function(titleText){
-            this.$(".entries-title").removeClass('hidden');
-            this.$(".title-text-label").html(titleText);
-        },
-        hideTitle: function(){
-            this.$(".entries-title").addClass('hidden');
-        },
-        showError: function(errorText) {
-            this._leaveChildren();
-            this.$(".entries-error").removeClass('hidden');
-            this.$(".error-text-label").html(errorText);
-        },
-        hideError: function() {
-            this.$(".entries-error").addClass('hidden');
+
+        /**
+         *
+         */
+        onLeave: function () {
+            console.trace('StationCollectionView.onLeave');
         }
     });
-    
-    return StationEntryCollectionView;
+
+    return StationCollectionView;
 
 });

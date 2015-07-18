@@ -9,6 +9,7 @@ define(function(require) {
     // these modules setup functions & configuration that are used elsewhere
     require('handlebars-helpers');
     require('foundation');
+    require('foundation.reveal');
 
     var coreRouterInstance = new CoreRouter();
 

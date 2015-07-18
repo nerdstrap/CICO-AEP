@@ -3,6 +3,7 @@ require.config({
         'config': {
             apiUrl: '/CheckInCheckOutMobile-services/webresources',
             siteRoot: '/CheckInCheckOutMobile-web/',
+            myPersonnelId: 's251201',
             expirationThreshold: 30,
             contactHelpEmailAddress: 'helpaep@aep.com',
             contactHelpSubject: 'CICO Help'
@@ -27,7 +28,7 @@ require.config({
         'jquery-magnific-popup': 'libs/jquery-magnific-popup',
         'jquery-formatter': 'libs/jquery-formatter',
         /* Underscore */
-        'underscore': 'libs/lodash',
+        'underscore': 'libs/underscore',
         /* Backbone */
         'backbone': 'libs/backbone',
         'backbone-modal': 'libs/backbone-modal',
@@ -39,6 +40,7 @@ require.config({
         'modernizr': 'libs/modernizr',
         /* Foundation */
         'foundation': 'libs/foundation',
+        'foundation.reveal': 'libs/foundation.reveal',
         /* App */
         'config': 'libs/config',
         'console': 'libs/console',
@@ -52,7 +54,7 @@ require.config({
         'enums': '../enums',
         'mappers': '../mappers',
         'models': '../models',
-        'repositories': '../repositories',
+        'repositories': '../repositories/memory',
         'routers': '../routers',
         'services': '../services',
         'templates': '../templates',
@@ -71,6 +73,11 @@ require.config({
             deps: [
                 'jquery',
                 'modernizr'
+            ]
+        },
+        'foundation.reveal': {
+            deps: [
+                'foundation'
             ]
         },
         'magnific-jquery-popup': {

@@ -119,7 +119,7 @@ define(function(require) {
                         function(position) {
                             var distanceInMiles = currentContext.locationModel.calculateDistanceFromCurrentPosition(position.coords, currentContext.model.get('coords'));
                             var attribute = {};
-                            attribute['distanceInMiles'] = distanceInMiles;
+                            attribute['distance'] = distanceInMiles;
                             currentContext.model.set(attribute);
                             currentContext.setDirectionLink(currentContext.model.attributes);
                         },

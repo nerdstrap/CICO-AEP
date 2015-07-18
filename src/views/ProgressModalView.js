@@ -1,68 +1,79 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
     var _ = require('underscore');
     var Backbone = require('backbone');
     var BaseModalView = require('views/BaseModalView');
-    var config = require('config');
     var EventNameEnum = require('enums/EventNameEnum');
-    var validation = require('backbone-validation');
     var template = require('hbs!templates/ProgressModalView');
 
     var ProgressModalView = BaseModalView.extend({
-        initialize: function(options) {
-            console.debug('ProgressView.initialize');
+        initialize: function (options) {
             options || (options = {});
-            this.modal = true;
-        },
-        render: function() {
-            this.$el.addClass("hidden");
-            this.$el.html(template({
-                messageText: "Sending data"
-            }));
-            //            this.$el.magnificModal();
+            this.dispatcher = options.dispatcher || this;
 
+            this.listenTo(this, 'loaded', this.onLoaded);
+            this.listenTo(this, 'leave', this.onLeave);
+        },
+
+        /**
+         *
+         * @returns {ProgressModalView}
+         */
+        render: function () {
+            var currentContext = this;
+            currentContext.$el.html(template());
             return this;
         },
-        /*
-         * 
-         * 
-         * beforeShow: function(errorMessage) {
-         this.errorMessage = errorMessage;
-         this.render();
-         this.$el.removeClass("hidden");
-         
-         return true;
-         }
+
+        /**
+         *
+         * @returns {ProgressModalView}
          */
-
-        beforeShow: function(promise) {
-            //            this.$el.removeClass("hidden");
-            // TODO update this to allow for multiple promises
-            this.promise = promise;
+        show: function (promise, message) {
             var currentContext = this;
-            if (this.promise && this.promise.state() === "pending") {
-                // don't hide the modal for at least a second (to allow it to fully show)
-                // 8/16 - shortened this to 100 ms to 
-                setTimeout(function() {
-                    currentContext.promise.always(function() {
-                        /* add a 10 ms wait so the modal overlay does not flash away before the confirmation view shows up */
-                        setTimeout(function() {
-                            currentContext.hide();
-                        }, 10);
-                    });
-                }, 10);
-
-                this.render();
-                this.$el.removeClass("hidden");
-
-                return true;
+            if (message) {
+                currentContext.updateProgressMessage(message);
             }
+            $('#progress-modal-view').foundation('reveal', 'open');
+            return this;
+        },
 
-            return false;
+        /**
+         *
+         * @returns {ProgressModalView}
+         */
+        hide: function () {
+            var currentContext = this;
+            $('#progress-modal-view').foundation('reveal', 'close');
+            return this;
+        },
+
+        /**
+         *
+         * @returns {ProgressModalView}
+         */
+        updateProgressMessage: function (message) {
+            var currentContext = this;
+            currentContext.$('#progress-message-label').html(message);
+            return this;
+        },
+
+        /**
+         *
+         */
+        onLoaded: function () {
+            console.trace('StationCollectionView.onLoaded');
+        },
+
+        /**
+         *
+         */
+        onLeave: function () {
+            console.trace('StationCollectionView.onLeave');
         }
-
     });
+
     return ProgressModalView;
 });

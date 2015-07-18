@@ -1,4 +1,4 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
@@ -6,11 +6,20 @@ define(function(require) {
     var Backbone = require('backbone');
     var CompositeView = require('views/CompositeView');
 
-    var BaseView = function(options) {
+    var BaseView = function (options) {
         CompositeView.apply(this, [options]);
     };
 
     _.extend(BaseView.prototype, CompositeView.prototype, {
+        /**
+         *
+         * @returns {BaseView}
+         */
+        completeLoading: function () {
+            var currentContext = this;
+            currentContext.trigger('loaded');
+            return this;
+        }
     });
 
     BaseView.extend = CompositeView.extend;

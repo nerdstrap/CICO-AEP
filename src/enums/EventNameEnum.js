@@ -22,6 +22,8 @@ define(function(require) {
         refreshPersonnelCollectionByGps: 'refreshPersonnelCollectionByGps',
         refreshPersonnelCollection: 'refreshPersonnelCollection',
         /*station entry log*/
+        refreshStationEntryLogCollectionByGps: 'refreshStationEntryLogCollectionByGps',
+        refreshStationEntryLogCollection: 'refreshStationEntryLogCollection',
         goToCheckIn: 'goToCheckIn',
         goToAdHocCheckIn: 'goToAdHocCheckIn',
         checkIn: 'checkIn',
@@ -48,10 +50,8 @@ define(function(require) {
         /*directions*/
         goToDirectionsWithLatLng: 'goToDirectionsWithLatLng',
         /*notifications*/
-        showProgessView: 'showProgessView',
-        showConfirmationView: 'showConfirmationView',
-        showWarningView: 'showWarningView',
-        showErrorView: 'showErrorView'
+        showProgressView: 'showProgressView',
+        showConfirmationView: 'showConfirmationView'
     };
     if (Object.freeze) {
         Object.freeze(EventNameEnum);

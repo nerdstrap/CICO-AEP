@@ -24,7 +24,7 @@ define(function(require) {
             this.dispatcher = options.dispatcher || this;
 
             this.listenTo(this.dispatcher, EventNameEnum.showConfirmationView, this.showConfirmationView);
-            this.listenTo(this.dispatcher, EventNameEnum.showProgessView, this.showProgessView);
+            this.listenTo(this.dispatcher, EventNameEnum.showProgressView, this.showProgressView);
 
             this.listenTo(this, 'loaded', this.onLoaded);
             this.listenTo(this, 'leave', this.onLeave);
@@ -53,7 +53,7 @@ define(function(require) {
             currentContext.headerView = new HeaderView({
                 dispatcher: currentContext.dispatcher
             });
-            currentContext.replaceChild(currentContext.headerView, '#header-view-placeholder');
+            currentContext.replaceWithChild(currentContext.headerView, '#header-view-placeholder');
             return this;
         },
         
@@ -66,7 +66,7 @@ define(function(require) {
             currentContext.footerView = new FooterView({
                 dispatcher: currentContext.dispatcher
             });
-            currentContext.replaceChild(currentContext.footerView, '#footer-view-placeholder');
+            currentContext.replaceWithChild(currentContext.footerView, '#footer-view-placeholder');
             return this;
         },
         
@@ -77,10 +77,9 @@ define(function(require) {
         renderProgressModalView: function(){
             var currentContext = this;
             currentContext.progressModalView = new ProgressModalView({
-                id: 'progressModalView',
                 dispatcher: currentContext.dispatcher
             });
-            currentContext.renderChildInto(currentContext.progressModalView, '#progress-popup-view-container');
+            currentContext.renderChildInto(currentContext.progressModalView, '#progress-modal-view-container');
             return this;
         },
         
@@ -91,30 +90,29 @@ define(function(require) {
         renderConfirmationModalView: function(){
             var currentContext = this;
             currentContext.confirmationModalView = new ConfirmationModalView({
-                id: 'confirmationModalView',
                 dispatcher: currentContext.dispatcher
             });
-            currentContext.renderChildInto(currentContext.confirmationModalView, '#confirmation-popup-view-container');
+            currentContext.renderChildInto(currentContext.confirmationModalView, '#confirmation-modal-view-container');
             return this;
         },
-        
+
         /**
-         * 
+         *
          * @returns {jquery element}
          */
         contentViewEl: function() {
             return $('#content-view-container', this.el);
         },
-        
+
         /**
-         * 
-         * @param {type} confirmationMessage
+         *
          * @param {type} confirmationType
+         * @param {type} confirmationMessage
          * @returns {ShellView}
          */
-        showConfirmationView: function(confirmationMessage, confirmationType) {
+        showConfirmationView: function(confirmationType, header, message) {
             var currentContext = this;
-            currentContext.confirmationView.show(confirmationMessage, confirmationType);
+            currentContext.confirmationModalView.show(confirmationType, header, message);
             return this;
         },
         
@@ -123,9 +121,9 @@ define(function(require) {
          * @param {type} promise
          * @returns {ShellView}
          */
-        showProgressView: function(promise) {
+        showProgressView: function(promise, message) {
             var currentContext = this;
-            currentContext.progressView.show(promise);
+            currentContext.progressModalView.show(promise, message);
             return this;
         },
         

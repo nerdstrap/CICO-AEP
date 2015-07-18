@@ -1,25 +1,33 @@
-@import "_base.scss";
+@charset "UTF-8";
+
+@import "normalize";
+@import "foundation";
+@import "font-awesome";
+@import "app";
+
 .hidden {
-    display: none; 
-}
-.header-view {
-    padding-right: 16px;
-    padding-left: 16px;
-    background-color: #DEDEDE; 
-}
-.container {
-    margin-right: auto;
-    margin-left: auto;
-    padding-right: 16px;
-    padding-left: 16px;
-    background-color: #F2F2F2;
-}
-.footer-view {
-    padding-right: 16px;
-    padding-left: 16px;
-    background-color: #DEDEDE;    
+  display: none;
 }
 
-.text-headline {
-    margin-top: 0px;
+.shell-view {
+  background-color: #F2F2F2;
+}
+
+.header-view {
+  padding-right: 16px;
+  padding-left: 16px;
+  background-color: #DEDEDE;
+}
+
+.container {
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 16px;
+  padding-left: 16px;
+}
+
+.footer-view {
+  padding-right: 16px;
+  padding-left: 16px;
+  background-color: #DEDEDE;
 }
