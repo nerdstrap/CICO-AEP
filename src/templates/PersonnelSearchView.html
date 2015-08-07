@@ -1,0 +1,47 @@
+<div class="personnel-search-view">
+
+    <div class="card-wrap">
+        <div class="card {{cid}}-progress">
+            <span class="progress-message">{{resource "personnelSearchLoadingMessageText"}}</span>
+            <img class="progress-image" src="{{resource 'progressImageSrc'}}" alt="{{resource 'progressImageAlt'}}"/>
+        </div>
+        <div class="card hidden {{cid}}-error">
+            <span class="error-message">{{resource "personnelSearchErrorMessageText"}}</span>
+        </div>
+        <div class="card hidden {{cid}}-loading">
+            <h1>{{resource "personnelSearchHeaderText"}}</h1>
+            <ul class="button-group radius even-3">
+                <li>
+                    <a id="search-by-gps-button" class="button radius small secondary" href="#">{{resource "gpsButtonText"}}</a>
+                </li>
+                <li>
+                    <a id="search-by-name-button" class="button radius small" href="#">{{resource "manualButtonText"}}</a>
+                </li>
+                <li>
+                    <a id="search-by-recent-button" class="button radius small secondary" href="#">{{resource "recentButtonText"}}</a>
+                </li>
+            </ul>
+            <div id="personnel-type-filter-container" class="form-group-checkbox hidden">
+                <label>{{resource "personnelTypeHeaderText"}}</label>
+                <input id="include-dol-input" class="form-input" name="includeDol" type="checkbox" checked><label for="include-dol-input">{{resource "dolPersonnelTypeHeaderText"}}</label>
+                <input id="include-noc-input" class="form-input" name="includeNoc" type="checkbox" checked><label for="include-noc-input">{{resource "nocPersonnelTypeHeaderText"}}</label>
+            </div>
+            <div id="manual-search-controls-container">
+                <div class="form-group-input">
+                    <input id="user-name-input" class="form-input" name="userName" type="search" placeholder="{{resource 'userNamePlaceholder'}}" data-input="search"/>
+                    <a class="clear-form-input hidden" data-button="clear" data-parent="#user-name-input" href="#"><i class="fa {{resource 'clearIcon'}}"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <div id="gps-personnel-collection-view-container" class="card personnel-collection-card hidden">
+        </div>
+
+        <div id="manual-personnel-collection-view-container" class="card personnel-collection-card hidden">
+        </div>
+
+        <div id="recent-personnel-collection-view-container" class="card personnel-collection-card hidden">
+        </div>
+
+    </div>
+</div>
