@@ -1,191 +1,198 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
     var _ = require('underscore');
     var Backbone = require('backbone');
     var BaseModalView = require('views/BaseModalView');
-    var config = require('config');
     var EventNameEnum = require('enums/EventNameEnum');
+    var CheckInTypeEnum = require('enums/CheckInTypeEnum');
     var validation = require('backbone-validation');
+    var utils = require('utils');
+    var optionTemplate = require('hbs!templates/Option');
     var template = require('hbs!templates/EditCheckInModalView');
 
     var EditCheckInModalView = BaseModalView.extend({
-        initialize: function(options) {
-            console.debug('DurationView.initialize');
+
+        id: '#edit-check-in-modal-view',
+
+        initialize: function (options) {
+            BaseModalView.prototype.initialize.apply(this, arguments);
             options || (options = {});
-            this.durationModel = this.model;
+            this.dispatcher = options.dispatcher || this;
+
+            this.myPersonnelModel = options.myPersonnelModel;
+            this.myOpenStationEntryLogModel = options.myOpenStationEntryLogModel;
+            this.stationModel = options.stationModel;
+            this.durationCollection = options.durationCollection;
+
+            this.$validating = this.$('.validating');
+
+            this.listenTo(this.model, 'validated', this.onValidated);
+            this.listenTo(this.durationCollection, 'reset', this.renderDurations);
+            this.listenTo(this.dispatcher, EventNameEnum.editCheckInSuccess, this.onEditCheckInSuccess);
+            this.listenTo(this.dispatcher, EventNameEnum.editCheckInError, this.onEditCheckInError);
+            this.listenTo(this, 'error', this.onError);
+            this.listenTo(this, 'loaded', this.onLoaded);
         },
-        render: function() {
-            this.renderError = false;
 
-            var templateModel = {
-                "durationModel": this.model.attributes
-            };
-            this.$el.html(template(templateModel));
-
-            var currentContext = this;
-            this.showOldExpectedTime();
-            this.setAdditionalMinutes();
-            this.showNewExpectedTime();
-            this.showAdditionalInfo();
-
-            this.showLoadingEntryData(false);
-            this.showExtendDurationDialog(true);
-
+        render: function () {
+            this.setElement(template(this.renderModel(this.model)));
+            this.bindValidation();
             return this;
         },
-        showError: function() {
-            this.controller.showErrorView("Error retrieving data for Check-In Screen. Please call the dispatch center to check in.");
-        },
-        addAllDurations: function() {
-            this.addOneDuration(new Backbone.Model({itemText: '0 Minutes', itemValue: '0'}));
-            _.each(this.durationCollection.models, this.addOneDuration, this);
-        },
-        addOneDuration: function(durationModel) {
-            var currentContext = this;
-            var durationText = '<option value="' + durationModel.get('itemValue') + '">' + durationModel.get('itemText') + '</li>';
-            currentContext.$('#additionalHours').append(durationText);
-        },
-        getOptions: function(options) {
-            options || (options = {});
-            var data = $.param(options);
 
-            return $.ajax({
-                contentType: 'application/json',
-                data: data,
-                dataType: 'json',
-                type: 'GET',
-                url: env.getApiUrl() + '/lookupDataItem/find/options'
-            });
-        },
-        beforeShow: function(errorMessage) {
-            var currentContext = this;
-            if (!this.renderError) {
-                currentContext.showLoading(true);
-                currentContext.beforeShowAfterGps();
-                return true;
-            } else {
-                return false;
-            }
-        },
-        beforeShowAfterGps: function() {
-            var currentContext = this;
-            $.when(currentContext.getOptions()).done(function(getOptionsResponse) {
-                var getOptionsData = getOptionsResponse;
-                currentContext.durationCollection = new Backbone.Collection(getOptionsData.nocDurations);
-                currentContext.addAllDurations();
-                currentContext.hideLoadingStationData();
-            });
-        },
         events: {
-            "click #extend-durationBtn": "extendDuration",
-            "click #cancel-extend-durationBtn": "cancelExtendDuration",
-            "change #additionalHours": "setAdditionalMinutes"
+            'input [data-input="text"]': 'formTextInput',
+            'click [data-button="clear"]': 'clearFormInput',
+            'change #duration-input': 'durationChanged',
+            'click #submit-edit-check-in-button': 'submitEditCheckIn',
+            'click #cancel-edit-check-in-button': 'cancelEditCheckIn',
+            'click .ok-modal-button': 'hide'
         },
-        cancelExtendDuration: function(event) {
+
+        renderDurations: function () {
+            var optionsHtml = '';
+            this.durationCollection.forEach(function (durationModel) {
+                optionsHtml += optionTemplate({
+                    'value': durationModel.get('value'),
+                    'text': durationModel.get('text')
+                });
+            });
+            this.$('#duration-input').append(optionsHtml);
+            return this;
+        },
+
+        bindValidation: function () {
+            validation.bind(this, {
+                selector: 'name'
+            });
+            return this;
+        },
+
+        validatePreconditions: function () {
+            var isValid = true;
+            if (this.model.get('checkInType') === CheckInTypeEnum.station && this.stationModel.get('hasHazard') === true) {
+                isValid = false;
+                this.trigger('error', utils.getResource('hazardErrorMessage'));
+            }
+            if (this.myOpenStationEntryLogModel && this.myOpenStationEntryLogModel.get('stationEntryLogId') !== this.model.get('stationEntryLogId')) {
+                isValid = false;
+                this.trigger('error', utils.getResource('openCheckInErrorMessage'));
+            }
+            if (this.model.has('outTime') === true) {
+                isValid = false;
+                this.trigger('error', utils.getResource('alreadyCheckedOutErrorMessage'));
+            }
+            return isValid;
+        },
+
+        updateViewFromModel: function () {
+            this.updateExpectedOutTimeLabel();
+            this.updateAdditionalInfoInput()
+            return this;
+        },
+
+        updateExpectedOutTimeLabel: function (duration) {
+            if (duration) {
+                var currentTime = new Date();
+                var expectedOutTime = utils.addMinutes(currentTime, duration);
+                this.model.set({expectedOutTime: expectedOutTime});
+            }
+            if (this.model.has('expectedOutTime')) {
+                this.$('#expected-out-time-label').text(utils.formatDate(this.model.get('expectedOutTime')));
+            }
+            return this;
+        },
+
+        updateAdditionalInfoInput: function () {
+            if (this.model.has('additionalInfo')) {
+                var additionalInfo = this.model.get('additionalInfo');
+                this.$('#additional-info-input').val(additionalInfo);
+            }
+            return this;
+        },
+
+        durationChanged: function (event) {
             if (event) {
                 event.preventDefault();
             }
-
-            this.hide();
+            var originalDuration = Number(this.model.get('duration'));
+            var additionalDuration = Number(this.$('#duration-input').val());
+            this.updateExpectedOutTimeLabel(originalDuration + additionalDuration);
+            return this;
         },
-        extendDuration: function(event) {
+
+        submitEditCheckIn: function (event) {
             if (event) {
                 event.preventDefault();
             }
+            this.showProgress(false, utils.getResource('editCheckInProgressMessageText'));
+            this.updateModelFromView();
+            this.model.validate();
+            return this;
+        },
 
-            var additionalInfo = this.$('#additionalInfo').val();
-            if (typeof (additionalInfo) !== "undefined") {
-                additionalInfo = additionalInfo.trim();
+        updateModelFromView: function () {
+            var attributes = {};
+            var originalDuration = Number(this.model.get('duration'));
+            var additionalDuration = Number(this.$('#duration-input').val());
+            attributes.duration = originalDuration + additionalDuration;
+            attributes.additionalInfo = this.$('#additional-info-input').val();
+            this.model.set(attributes);
+            return this;
+        },
+
+        onValidated: function (isValid, model, errors) {
+            this.$validating.removeClass('invalid');
+            if (isValid) {
+                this.editCheckIn();
+            } else {
+                for (var error in errors) {
+                    this.$('[name="' + error + '"]').parent().addClass('invalid');
+                }
+                this.showLoading();
             }
+            return this;
+        },
 
-            currentContext.dispatcher.trigger(EventNameEnum.extendDuration, this.model.getCurrentStationEntry(), this.model, additionalInfo);
+        editCheckIn: function () {
+            this.dispatcher.trigger(EventNameEnum.editCheckIn, this.model);
+            return this;
+        },
+
+        cancelEditCheckIn: function (event) {
+            if (event) {
+                event.preventDefault();
+            }
             this.hide();
+            return this;
         },
-        showLoading: function(show) {
-            if (!show) {
-                this.$('#loading-dialog').hide();
-            }
-            else {
-                this.$('#loading-dialog').show();
-            }
-            this.tryRecent();
-        },
-        showLoadingEntryData: function(show) {
-            if (!show) {
-                this.canHideLoadingEntryData = true;
-                this.tryHideLoading();
-            }
-            else {
-                this.canHideLoadingEntryData = false;
-                this.tryRecent();
-            }
-        },
-        hideLoadingStationData: function() {
-            this.canHideLoadingStationData = true;
-            this.tryHideLoading();
-        },
-        tryHideLoading: function() {
-            if (this.canHideLoadingEntryData && this.canHideLoadingStationData) {
-                var currentContext = this;
-                setTimeout(function() {
-                    currentContext.showLoading(false);
-                    currentContext.showExtendDurationDialogs(true);
-                }, 500);
-            }
-        },
-        showExtendDurationDialogs: function(show) {
-            if (!show) {
-                this.$('#extend-duration-dialogs').hide();
-            }
-            else {
-                this.$('#extend-duration-dialogs').show();
-                this.tryRecent();
-            }
-        },
-        showExtendDurationDialog: function(show) {
-            if (!show) {
-                this.$('#extend-duration-dialog').hide();
-            }
-            else {
-                this.$('#extend-duration-dialog').show();
-                this.tryRecent();
-            }
-        },
-        tryRecent: function() {
-            if (this.el.className === 'modal') {
-                this.recenter();
-            }
-        },
-        getOldDuration: function() {
-            return this.model.getCurrentDuration() || 0;
-        },
-        getNewDuration: function() {
-            var oldDuration = this.getOldDuration();
-            var extendedDuration = this.$('#additionalHours').val();
 
-            return Number(oldDuration) + Number(extendedDuration);
+        onEditCheckInSuccess: function () {
+            var stationName = this.model.get('stationName');
+            var editCheckInSuccessMessageText = utils.formatString(utils.getResource('editCheckInSuccessMessageTextFormatString'), [stationName]);
+            this.hideProgress();
+            this.showInfo(editCheckInSuccessMessageText);
         },
-        showOldExpectedTime: function() {
-            this.$('.expectedCheckOutTime').html(this.model.getCurrentExpectedCheckOutTimeString());
+
+        onEditCheckInError: function (error) {
+            this.showError(error);
         },
-        setAdditionalMinutes: function() {
-            var additionalMinutes = this.$('#additionalHours').val();
-            this.model.setNewDuration(additionalMinutes);
-            this.showNewExpectedTime();
-        },
-        showNewExpectedTime: function() {
-            var newExpectedCheckOutTime = this.model.getNewExpectedCheckOutTimeString();
-            this.$('.expectedCheckOutTimeNew').html(newExpectedCheckOutTime);
-        },
-        showAdditionalInfo: function() {
-            var additionalInfo = this.model.stationEntry.get('additionalInfo');
-            if (typeof (additionalInfo) !== "undefined") {
-                this.$('#additionalInfo').html(additionalInfo);
+
+        onLoaded: function () {
+            if (this.validatePreconditions()) {
+                this.updateViewFromModel();
+                this.showLoading();
             }
+        },
+
+        onError: function (error) {
+            this.showError(error);
         }
+
     });
 
     return EditCheckInModalView;
+
 });

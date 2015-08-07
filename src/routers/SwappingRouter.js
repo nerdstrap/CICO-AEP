@@ -32,6 +32,23 @@ define(function(require) {
                     scrollTop: $('body').offset().top
                 }, 250);
             }
+        },
+
+        showModal: function(newModalView) {
+            if (this.currentModalView && this.currentModalView.leave) {
+                this.currentModalView.leave();
+            }
+
+            this.currentModalView = newModalView;
+            $(this.modalViewEl).append(this.currentModalView.render().el);
+
+            if (this.currentModalView && this.currentModalView.swapped) {
+                this.currentModalView.swapped();
+            }
+
+            if (this.currentModalView && this.currentModalView.show) {
+                this.currentModalView.show();
+            }
         }
 
     });

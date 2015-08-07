@@ -9,82 +9,45 @@ define(function(require) {
     var template = require('hbs!templates/FooterView');
 
     var FooterView = BaseView.extend({
-        /**
-         * 
-         * @param {type} options
-         */
+        
         initialize: function(options) {
+            BaseView.prototype.initialize.apply(this, arguments);
             options || (options = {});
             this.dispatcher = options.dispatcher || this;
         },
-        /**
-         * 
-         * @returns {FooterView}
-         */
+        
         render: function() {
-            var currentContext = this;
-            currentContext.setElement(template());
+            this.setElement(template(this.renderModel(this.model)));
             return this;
         },
         
-        /**
-         * 
-         */
         events: {
             'click #open-help-button': 'openHelp',
             'click #contact-support-button': 'contactSupport',
             'click #logout-button': 'logout'
         },
         
-        /**
-         * 
-         * @param {type} event
-         */
         openHelp: function(event) {
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
-            currentContext.dispatcher.trigger(EventNameEnum.openHelp);
+            this.dispatcher.trigger(EventNameEnum.openHelp);
         },
         
-        /**
-         * 
-         * @param {type} event
-         */
         contactSupport: function(event) {
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
-            currentContext.dispatcher.trigger(EventNameEnum.contactSupport);
+            this.dispatcher.trigger(EventNameEnum.contactSupport);
         },
         
-        /**
-         * 
-         * @param {type} event
-         */
         logout: function(event) {
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
-            currentContext.dispatcher.trigger(EventNameEnum.logout);
-        },
-        
-        /**
-         * 
-         */
-        onLoaded: function() {
-            console.trace('FooterView.onLoaded');
-        },
-        
-        /**
-         * 
-         */
-        onLeave: function() {
-            console.trace('FooterView.onLeave');
+            this.dispatcher.trigger(EventNameEnum.logout);
         }
+
     });
     
     return FooterView;

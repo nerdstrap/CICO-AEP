@@ -1,15 +1,16 @@
 <div class="station-tile-view tile">
+    <div data-button="tile">
 
-        <div class="tile-inner">
-            <span class="station-name-label text-overflow"></span>
+        <div>
+            <span class="station-name-label"></span>
             <i class="fa {{resource 'hazardIcon'}} hazard-icon"></i>
             <i class="fa {{resource 'warningIcon'}} warning-icon"></i>
             <i class="fa {{resource 'abnormalConditionIcon'}} abnormal-condition-icon"></i>
             <i class="fa {{resource 'openCheckInIcon'}} open-check-in-icon"></i>
         </div>
 
-        <div class="inner">
-            <span class="distance-label"></span>&nbsp;|&nbsp;<a class="go-to-directions-button" data-ignore="tile" href="#" tabindex="0"><i class="fa {{resource 'directionsIcon'}}"></i>{{resource 'directionsButtonText'}}</a>
+        <div data-ignore="tile">
+            <span class="distance-label"></span><span class="distance-directions-separator">{{resource "distanceDirectionsSeparator"}}</span><a class="go-to-directions-button" href="#" tabindex="0">{{resource 'directionsButtonText'}}<i class="fa {{resource 'directionsIcon'}}"></i></a>
         </div>
 
     </div>

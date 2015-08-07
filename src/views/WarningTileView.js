@@ -7,9 +7,9 @@ define(function(require) {
     var BaseView = require('views/BaseView');
     var EventNameEnum = require('enums/EventNameEnum');
     var utils = require('utils');
-    var template = require('hbs!templates/StationTileView');
+    var template = require('hbs!templates/WarningTileView');
 
-    var StationTileView = BaseView.extend({
+    var WarningTileView = BaseView.extend({
         /**
          *
          * @param options
@@ -23,7 +23,7 @@ define(function(require) {
         },
         /**
          *
-         * @returns {StationTileView}
+         * @returns {WarningTileView}
          */
         render: function() {
             var currentContext = this;
@@ -38,90 +38,36 @@ define(function(require) {
          */
         events: {
             'click .go-to-directions-button': 'goToDirectionsWithLatLng',
-            'click .go-to-station-button': 'goToStationWithId'
+            'click .go-to-warning-button': 'goToWarningWithId'
         },
         
         /**
          *
-         * @returns {StationTileView}
+         * @returns {WarningTileView}
          */
         updateViewFromModel: function() {
             var currentContext = this;
-            currentContext.updateIcons();
-            currentContext.updateStationNameLabel();
-            currentContext.updateDistanceLabel();
+            currentContext.updateDescriptionLabel();
             return this;
         },
         
         /**
          *
-         * @returns {StationTileView}
+         * @returns {WarningTileView}
          */
-        updateIcons: function() {
+        updateDescriptionLabel: function() {
             var currentContext = this;
-
-            if (currentContext.model.has('hasHazard') && currentContext.model.get('hasHazard') === true) {
-                currentContext.$('.hazard-icon').removeClass('hidden');
-            } else {
-                currentContext.$('.hazard-icon').addClass('hidden');
+            if (currentContext.model.has('description')) {
+                var description = currentContext.model.get('description');
+                currentContext.$('.description-label').text(description);
             }
-
-            if (currentContext.model.has('hasAbnormalConditions') && currentContext.model.get('hasAbnormalConditions') === true) {
-                currentContext.$('.abnormal-condition-icon').removeClass('hidden');
-            } else {
-                currentContext.$('.abnormal-condition-icon').addClass('hidden');
-            }
-
-            if (currentContext.model.has('hasWarnings') && currentContext.model.get('hasWarnings') === true) {
-                currentContext.$('.warning-icon').removeClass('hidden');
-            } else {
-                currentContext.$('.warning-icon').addClass('hidden');
-            }
-
-            if (currentContext.model.has('hasOpenCheckIns') && currentContext.model.get('hasOpenCheckIns') === true) {
-                currentContext.$('.open-check-in-icon').removeClass('hidden');
-            } else {
-                currentContext.$('.open-check-in-icon').addClass('hidden');
-            }
-
-            return this;
-        },
-        
-        /**
-         *
-         * @returns {StationTileView}
-         */
-        updateStationNameLabel: function() {
-            var currentContext = this;
-            if (currentContext.model.has('stationName')) {
-                var stationName = currentContext.model.get('stationName');
-                currentContext.$('.station-name-label').html(stationName);
-            }
-            return this;
-        },
-        
-        /**
-         *
-         * @returns {StationTileView}
-         */
-        updateDistanceLabel: function() {
-            var currentContext = this;
-            var formattedDistance;
-            if (currentContext.model.has('distance') && currentContext.model.has('latitude') && currentContext.model.has('longitude')) {
-                currentContext.hasCoordinates = true;
-                var distance = currentContext.model.get('distance').toFixed(2);
-                formattedDistance = utils.formatString(utils.getResource('distanceFormatString'), [distance]);
-            } else {
-                formattedDistance = utils.getResource('coordinatesUnavailableErrorMessage');
-            }
-            currentContext.$('.distance-label').html(formattedDistance);
             return this;
         },
         
         /**
          *
          * @param event
-         * @returns {StationTileView}
+         * @returns {WarningTileView}
          */
         goToDirectionsWithLatLng: function(event) {
             if (event) {
@@ -137,15 +83,15 @@ define(function(require) {
         /**
          *
          * @param event
-         * @returns {StationTileView}
+         * @returns {WarningTileView}
          */
-        goToStationWithId: function(event) {
+        goToWarningWithId: function(event) {
             if (event) {
                 event.preventDefault();
             }
             var currentContext = this;
-            var stationId = this.model.get('stationId');
-            currentContext.dispatcher.trigger(EventNameEnum.goToStationWithId, stationId);
+            var warningId = this.model.get('warningId');
+            currentContext.dispatcher.trigger(EventNameEnum.goToWarningWithId, warningId);
             return this;
         },
         
@@ -153,16 +99,16 @@ define(function(require) {
          * 
          */
         onLoaded: function() {
-            console.trace('StationTileView.onLoaded');
+            console.trace('WarningTileView.onLoaded');
         },
         
         /**
          * 
          */
         onLeave: function() {
-            console.trace('StationTileView.onLeave');
+            console.trace('WarningTileView.onLeave');
         }
     });
 
-    return StationTileView;
+    return WarningTileView;
 });

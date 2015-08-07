@@ -8,31 +8,37 @@ define(function (require) {
     var _settings = {
         myPersonnelId: 's251201',
         expirationThreshold: 30,
-        contactHelpEmailAddress: 'helpaep@aep.com',
-        contactHelpSubject: 'CICO Help'
+        helpEmail: 'helpaep@aep.com',
+        updateStationEmail: 'telecomcico@aep.com'
     };
 
     var SettingsRepository = function (options) {
-        options || (options = {});
         this.initialize.apply(this, arguments);
     };
 
     _.extend(SettingsRepository.prototype, {
+
         initialize: function (options) {
-            options || (options = {});
         },
+
         getSettings: function (options) {
             options || (options = {});
-            var currentContext = this;
             var deferred = $.Deferred();
 
+            var error;
+            var settings = _settings;
+
             var results = {
-                settings: _settings
+                settings: settings
             };
 
             window.setTimeout(function () {
-                deferred.resolveWith(currentContext, [results]);
-            }, 20);
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
 
             return deferred.promise();
         }

@@ -1,72 +1,45 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
     var _ = require('underscore');
     var Backbone = require('backbone');
+    var ConfirmationModalView = require('views/ConfirmationModalView');
+    var EventNameEnum = require('enums/EventNameEnum');
 
-    var CoreController = function(options) {
-        console.debug('new CoreController()');
+    var CoreController = function (options) {
         options || (options = {});
         this.initialize.apply(this, arguments);
     };
 
     _.extend(CoreController.prototype, Backbone.Events, {
-        initialize: function(options) {
-            console.debug('CoreController.initialize');
+
+        initialize: function (options) {
+            console.trace('CoreController.initialize');
             options || (options = {});
             this.router = options.router;
             this.dispatcher = options.dispatcher;
-        },
-        logout: function() {
-            console.debug('CoreController.logout');
-            var deferred = $.Deferred();
-            this.router.trigger('logout');
-            var url = env.getSiteRoot() + "?ts=" + (new Date()).getTime();
+            this.geoLocationService = options.geoLocationService;
+            this.persistenceContext = options.persistenceContext;
 
-            $.when(this._logoutOfApp(), this._logoutOfServer()).then(
-                    function() {
-                        window.location.href = url;
-                        deferred.resolve(url);
-                    },
-                    function() {
-                        deferred.reject();
-                    });
+            this.listenTo(this.dispatcher, EventNameEnum.showConfirmation, this.showConfirmation);
+        },
+
+        showConfirmation: function () {
+            var currentContext = this;
+            var deferred = $.Deferred();
+
+            var confirmationModalView = new ConfirmationModalView({
+                dispatcher: currentContext.dispatcher
+            });
+
+            currentContext.router.showModal(confirmationModalView);
+
+            window.setTimeout(function () {
+                deferred.resolveWith(currentContext, [confirmationModalView]);
+            }, 5);
 
             return deferred.promise();
-        },
-        openHelp: function() {
-            window.open("docs/CicoHelp.html");
-        },
-        emailHelp: function() {
-            var bodyLine = "%0D%0A";
-            var seperator = "------------------------------------------";
-            var email = env.getHelpEmail();
-            var subject = env.getHelpEmailSubject();
-
-            var firstName = '';
-            var lastName = '';
-            var middleName = '';
-            var userEmail = "Email: ";
-            var contactNumber = "Contact Number: ";
-            var userName = "User Name: ";
-
-            if (this.myPersonnelModel) {
-                firstName = this.myPersonnelModel.get("firstName");
-                lastName = this.myPersonnelModel.get("lastName");
-                middleName = (this.myPersonnelModel.has("middleName") ? this.myPersonnelModel.get("middleName") : '');
-                userEmail = userEmail + this.myPersonnelModel.get("email");
-                userName = userName + firstName + " " + middleName + " " + lastName;
-                contactNumber = contactNumber + (this.myPersonnelModel.has("contactNumber") ? this.myPersonnelModel.get("contactNumber") : '');
-            }
-
-            window.location.href = "mailto:" + email + "?subject=" + subject + "&body=" + userName + bodyLine + userEmail + bodyLine + contactNumber + bodyLine + seperator + bodyLine + bodyLine + "message%20goes%20here";
-        },
-        _logoutOfApp: function() {
-            return $.get(env.getAppLogoutUrl());
-        },
-        _logoutOfServer: function() {
-            return $.get(env.getLogoutUrl());
         }
 
     });

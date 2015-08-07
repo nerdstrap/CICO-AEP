@@ -1,4 +1,4 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var EventNameEnum = {
@@ -7,20 +7,18 @@ define(function(require) {
         settingsReset: 'settingsReset',
         refreshMyPersonnel: 'refreshMyPersonnel',
         myPersonnelReset: 'myPersonnelReset',
-        refreshOpenStationEntryLogs: 'refreshOpenStationEntryLogs',
-        openStationEntryLogReset: 'openStationEntryLogReset',
         /*station*/
         goToStationSearch: 'goToStationSearch',
-        goToStationWithId: 'goToStationWithId',
-        goToAdHocStationWithId: 'goToAdHocStationWithId',
-        refreshStationCollectionByGps: 'refreshStationCollectionByGps',
-        refreshStationCollection: 'refreshStationCollection',
+        goToStationDetailWithId: 'goToStationDetailWithId',
+        goToAdHocStationDetailWithId: 'goToAdHocStationDetailWithId',
+        getNearbyStations: 'getNearbyStations',
+        getRecentStations: 'getRecentStations',
+        getStationsByStationName: 'getStationsByStationName',
         /*personnel*/
         goToPersonnelSearch: 'goToPersonnelSearch',
-        goToPersonnelWithId: 'goToPersonnelWithId',
-        goToPersonnelWithName: 'goToPersonnelWithName',
-        refreshPersonnelCollectionByGps: 'refreshPersonnelCollectionByGps',
-        refreshPersonnelCollection: 'refreshPersonnelCollection',
+        goToPersonnelDetailWithId: 'goToPersonnelDetailWithId',
+        goToPersonnelDetailWithUserName: 'goToPersonnelDetailWithUserName',
+        getPersonnelsByUserName: 'getPersonnelsByUserName',
         /*station entry log*/
         refreshStationEntryLogCollectionByGps: 'refreshStationEntryLogCollectionByGps',
         refreshStationEntryLogCollection: 'refreshStationEntryLogCollection',
@@ -38,7 +36,7 @@ define(function(require) {
         checkOutSuccess: 'checkOutSuccess',
         checkOutError: 'checkOutError',
         /*warning*/
-        refreshWarningCollection: 'refreshWarningCollection',
+        getWarningsByStationId: 'getWarningsByStationId',
         addWarning: 'addWarning',
         addWarningSuccess: 'addWarningSuccess',
         addWarningError: 'addWarningError',
@@ -46,12 +44,11 @@ define(function(require) {
         clearWarningSuccess: 'clearWarningSuccess',
         clearWarningError: 'clearWarningError',
         /*abnormal condition*/
-        refreshAbnormalConditionCollection: 'refreshAbnormalConditionCollection',
+        getAbnormalConditionsByStationId: 'getAbnormalConditionsByStationId',
         /*directions*/
         goToDirectionsWithLatLng: 'goToDirectionsWithLatLng',
         /*notifications*/
-        showProgressView: 'showProgressView',
-        showConfirmationView: 'showConfirmationView'
+        showConfirmation: 'showConfirmation'
     };
     if (Object.freeze) {
         Object.freeze(EventNameEnum);

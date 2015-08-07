@@ -1,35 +1,49 @@
 <div class="station-search-view">
-    <h1 class="text-headline">{{resource "stationSearchViewHeaderText"}}</h1>
-    <ul class="button-group radius even-3">
-        <li>
-            <a id="search-by-gps-button" class="button radius small" href="#">{{resource "gpsButtonText"}}</a>
-        </li>
-        <li>
-            <a id="search-by-name-button" class="button radius small secondary" href="#">{{resource "manualButtonText"}}</a>
-        </li>
-        <li>
-            <a id="search-by-recent-button" class="button radius small secondary" href="#">{{resource "recentButtonText"}}</a>
-        </li>
-    </ul>
-    <div id="station-type-filter-container" class="row hidden">
-        <div class="small-12 columns input-column">
-            <label>{{resource "stationTypeHeaderText"}}</label>
-            <input id="include-dol-input" type="checkbox" checked><label for="include-dol-input">{{resource "dolStationTypeHeaderText"}}</label>
-            <input id="include-noc-input" type="checkbox" checked><label for="include-noc-input">{{resource "nocStationTypeHeaderText"}}</label>
+
+    <div class="card-wrap">
+        <div class="card {{cid}}-progress">
+            <span class="progress-message">{{resource "stationSearchLoadingMessageText"}}</span>
+            <img class="progress-image" src="{{resource 'progressImageSrc'}}" alt="{{resource 'progressImageAlt'}}"/>
         </div>
-    </div>
-    <div id="manual-search-input-container" class="hidden">
-        <input id="manual-search-input" type="search" class="manual-search-input" placeholder="{{resource 'manualSearchPlaceholder'}}"/>
-        <a id="clear-manual-search-input-button" href="#" class="hidden"><i class="fa {{resource 'clearIcon'}}"></i></a>
-    </div>
-    <div id="go-to-ad-hoc-check-in-button-container" class="hidden">
-        <a id="go-to-ad-hoc-check-in-button" class="button radius success" href="#">{{resource "adHocCheckInButtonText"}}</a>
-        <div id="ad-hoc-check-in-modal-view-container"></div>
-    </div>
-    <div id="gps-station-collection-view-container" class="hidden">
-    </div>
-    <div id="manual-station-collection-view-container" class="hidden">
-    </div>
-    <div id="recent-station-collection-view-container" class="hidden">
+        <div class="card hidden {{cid}}-error">
+            <span class="error-message">{{resource "stationSearchErrorMessageText"}}</span>
+        </div>
+        <div class="card hidden {{cid}}-loading">
+            <h1>{{resource "stationSearchHeaderText"}}</h1>
+            <ul class="button-group radius even-3">
+                <li>
+                    <a id="search-by-gps-button" class="button radius small" href="#">{{resource "gpsButtonText"}}</a>
+                </li>
+                <li>
+                    <a id="search-by-name-button" class="button radius small secondary" href="#">{{resource "manualButtonText"}}</a>
+                </li>
+                <li>
+                    <a id="search-by-recent-button" class="button radius small secondary" href="#">{{resource "recentButtonText"}}</a>
+                </li>
+            </ul>
+            <div id="station-type-filter-container" class="form-group-checkbox hidden">
+                <label>{{resource "stationTypeHeaderText"}}</label>
+                <input id="include-dol-input" class="form-input" name="includeDol" type="checkbox" checked><label for="include-dol-input">{{resource "dolStationTypeHeaderText"}}</label>
+                <input id="include-noc-input" class="form-input" name="includeNoc" type="checkbox" checked><label for="include-noc-input">{{resource "nocStationTypeHeaderText"}}</label>
+            </div>
+            <div id="manual-search-controls-container" class="hidden">
+                <div class="form-group-input">
+                    <input id="station-name-input" class="form-input" name="stationName" type="search" placeholder="{{resource 'stationNamePlaceholder'}}" data-input="search"/>
+                    <a class="clear-form-input hidden" data-button="clear" data-parent="#station-name-input" href="#"><i class="fa {{resource 'clearIcon'}}"></i></a>
+                </div>
+                <a id="go-to-ad-hoc-check-in-button" class="button radius success hidden" href="#">{{resource "adHocCheckInButtonText"}}</a>
+                <a id="go-to-open-check-in-button" class="button radius secondary hidden" href="#">{{resource "openCheckInButtonText"}}</a>
+            </div>
+        </div>
+
+        <div id="gps-station-collection-view-container" class="card station-collection-card hidden">
+        </div>
+
+        <div id="manual-station-collection-view-container" class="card station-collection-card hidden">
+        </div>
+
+        <div id="recent-station-collection-view-container" class="card station-collection-card hidden">
+        </div>
+
     </div>
 </div>

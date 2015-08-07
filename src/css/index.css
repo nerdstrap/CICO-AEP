@@ -8473,3 +8473,56 @@ th.hide-for-touch {
   padding-right: 16px;
   padding-left: 16px;
   background-color: #DEDEDE; }
+
+[data-button="tile"] {
+  cursor: pointer;
+  display: block;
+  display: flex;
+  flex: 1; }
+  [data-button="tile"] [data-ignore="tile"] {
+    cursor: default;
+    cursor: initial; }
+
+.form-group-input {
+  position: relative;
+  margin-bottom: 10px !important;
+  padding: 0 8px !important;
+  border: solid 1px #cccccc !important; }
+  .form-group-input.invalid {
+    border: solid 1px #c24922 !important; }
+  .form-group-input label {
+    display: inline-block !important;
+    margin: 0 !important;
+    padding: 0.625em 0 !important;
+    width: 39% !important; }
+  .form-group-input input, .form-group-input select, .form-group-input span.form-input {
+    display: inline-block !important;
+    background: transparent !important;
+    border: 0 none !important;
+    box-shadow: none !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    width: 55% !important; }
+  .form-group-input .clear-form-input {
+    position: absolute !important;
+    margin-left: -10px !important;
+    margin-top: 5px !important; }
+
+.form-group-radio {
+  position: relative;
+  margin-bottom: 10px !important;
+  padding: 0 8px !important; }
+  .form-group-radio.invalid {
+    border: solid 1px #c24922 !important; }
+
+.panel-collapse i.toggle-show {
+  display: none; }
+
+.panel-collapse i.toggle-hide {
+  display: inherit; }
+
+.panel-collapse.active i.toggle-show {
+  display: inherit; }
+
+.panel-collapse.active i.toggle-hide {
+  display: none; }

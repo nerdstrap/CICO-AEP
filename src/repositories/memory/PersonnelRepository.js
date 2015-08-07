@@ -16,70 +16,129 @@ define(function (require) {
             "lastName": "Baltic",
             "contactNumber": "6143239560",
             "email": "mebaltic@aep.com",
-            "userRole": "Admin"
+            "userRole": "TD|TC"
         }
     ];
 
-    var _getById = function (personnelId) {
-        return _.where(_personnels, {personnelId: personnelId});
+    var _clone = function (collection) {
+        var clonedCollection = [];
+        _.each(collection, function (item) {
+            clonedCollection.push(_.clone(item));
+        });
+        return clonedCollection;
     };
 
-    var _getBySearchQuery = function (searchQuery) {
-        return _.where(_personnels, {userName: searchQuery});
+    var _getPersonnelByPersonnelId = function (personnelId) {
+        return _clone(_.where(_personnels, {personnelId: personnelId}));
+    };
+
+    var _getPersonnelsByUserName = function (userName) {
+        var filteredStations = _.filter(_personnels, function (_personnel) {
+            return _personnel.userName.toLowerCase().indexOf(userName.toLowerCase()) >= 0;
+        });
+        return _clone(filteredStations);
     };
 
     var PersonnelRepository = function (options) {
-        options || (options = {});
         this.initialize.apply(this, arguments);
     };
 
     _.extend(PersonnelRepository.prototype, {
+
         initialize: function (options) {
-            options || (options = {});
         },
-        getMyPersonnel: function () {
-            var currentContext = this;
+
+        getPersonnelByPersonnelId: function (options) {
+            options || (options = {});
             var deferred = $.Deferred();
 
-            var myPersonnelId = config.myPersonnelId;
-            var personnels = _getById(myPersonnelId);
+            var error;
+            var myPersonnelId = config.myPersonnelId();
+            var personnels = _getPersonnelByPersonnelId(myPersonnelId);
 
             var results = {
                 personnels: personnels
             };
 
             window.setTimeout(function () {
-                deferred.resolveWith(currentContext, [results]);
-            }, 20);
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
 
             return deferred.promise();
         },
-        getPersonnels: function (options) {
+
+        getPersonnelByUserName: function (options) {
             options || (options = {});
-            var currentContext = this;
             var deferred = $.Deferred();
 
-            var personnels;
-            if (options.personnelId) {
-                personnels = _getById(options.personnelId);
-            } else if (options.searchQuery && options.searchQuery.length > 1) {
-                personnels = _getBySearchQuery(options.searchQuery);
-            } else if (options.coords) {
-                personnels = [];
-            } else {
-                personnels = [];
-            }
+            var error;
+            var personnels = _getPersonnelsByUserName(options.userName);
 
             var results = {
                 personnels: personnels
             };
 
             window.setTimeout(function () {
-                deferred.resolveWith(currentContext, [results]);
-            }, 20);
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
+
+            return deferred.promise();
+        },
+
+        getMyPersonnel: function (options) {
+            options || (options = {});
+            var deferred = $.Deferred();
+
+            var error;
+            var myPersonnelId = config.myPersonnelId();
+            var personnels = _getPersonnelByPersonnelId(myPersonnelId);
+
+            var results = {
+                personnels: personnels
+            };
+
+            window.setTimeout(function () {
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
+
+            return deferred.promise();
+        },
+
+        getPersonnelsByUserName: function (options) {
+            options || (options = {});
+            var deferred = $.Deferred();
+
+            var error;
+            var personnels = _getPersonnelsByUserName(options.userName);
+
+            var results = {
+                personnels: personnels
+            };
+
+            window.setTimeout(function () {
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
 
             return deferred.promise();
         }
+
+
     });
 
     return PersonnelRepository;

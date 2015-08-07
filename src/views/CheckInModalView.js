@@ -1,619 +1,302 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
     var _ = require('underscore');
     var Backbone = require('backbone');
     var BaseModalView = require('views/BaseModalView');
-    var config = require('config');
     var EventNameEnum = require('enums/EventNameEnum');
+    var StationTypeEnum = require('enums/StationTypeEnum');
+    var CheckInTypeEnum = require('enums/CheckInTypeEnum');
     var validation = require('backbone-validation');
+    var utils = require('utils');
+    var optionTemplate = require('hbs!templates/Option');
     var template = require('hbs!templates/CheckInModalView');
-    
-    var CheckInModalView = BaseModalView.extend({
-        initialize: function(options) {
-            console.debug('CheckInView.initialize');
-            options || (options = {});
 
-            this.popupOptions = {showCloseButton: false};
+    var CheckInModalView = BaseModalView.extend({
+
+        id: '#check-in-modal-view',
+
+        initialize: function (options) {
+            BaseModalView.prototype.initialize.apply(this, arguments);
+            options || (options = {});
+            this.dispatcher = options.dispatcher || this;
 
             this.myPersonnelModel = options.myPersonnelModel;
+            this.myOpenStationEntryLogModel = options.myOpenStationEntryLogModel;
             this.stationModel = options.stationModel;
-            this.dispatcher = options.dispatcher || this;
-            this.stationWarningCollection = options.stationWarningCollection;
+            this.purposeCollection = options.purposeCollection;
+            this.durationCollection = options.durationCollection;
 
-            this.listenTo(this.model, 'change', this.updateModelFromView);
+            this.$validating = this.$('.validating');
+
             this.listenTo(this.model, 'validated', this.onValidated);
-            this.listenTo(this.stationWarningCollection, 'reset', this.addAllStationWarnings);
+            this.listenTo(this.purposeCollection, 'reset', this.renderPurposes);
+            this.listenTo(this.durationCollection, 'reset', this.renderDurations);
+            this.listenTo(this.dispatcher, EventNameEnum.checkInSuccess, this.onCheckInSuccess);
+            this.listenTo(this.dispatcher, EventNameEnum.checkInError, this.onCheckInError);
+            this.listenTo(this, 'error', this.onError);
+            this.listenTo(this, 'loaded', this.onLoaded);
         },
-        render: function() {
-            console.debug('CheckInView.render');
-            validation.unbind(this);
-            this.renderError = false;
-            if (!this.myPersonnelModel) {
-                // app data model is loaded, but we don't have the necessary userInfo
-                // this probably means the user is not in the PERSONNEL table
-                this.showError("The current user is not configured for Check-In functionality.");
-                this.renderError = true;
-                return this;
-            }
 
-            var templateModel = {
-                "stationEntryModel": this.model.attributes,
-                "myPersonnelModel": this.myPersonnelModel.attributes,
-                "stationModel": this.stationModel.attributes
-            };
-            this.$el.html(template(templateModel));
+        render: function () {
+            this.setElement(template(this.renderModel()));
+            this.bindValidation();
+            return this;
+        },
+
+        events: {
+            'input [data-input="tel"]': 'formTelephoneInput',
+            'input [data-input="text"]': 'formTextInput',
+            'click [data-button="clear"]': 'clearFormInput',
+            'change #purpose-input': 'purposeChanged',
+            'change #duration-input': 'durationChanged',
+            'click #submit-check-in-button': 'submitCheckIn',
+            'click #cancel-check-in-button': 'cancelCheckIn',
+            'click .ok-modal-button': 'hide'
+        },
+
+        renderPurposes: function () {
+            var optionsHtml = '';
+            this.purposeCollection.forEach(function (purposeModel) {
+                optionsHtml += optionTemplate({
+                    'value': purposeModel.get('value'),
+                    'text': purposeModel.get('text')
+                });
+            });
+            this.$('#purpose-input').append(optionsHtml);
+            return this;
+        },
+
+        renderDurations: function () {
+            var optionsHtml = '';
+            this.durationCollection.forEach(function (durationModel) {
+                optionsHtml += optionTemplate({
+                    'value': durationModel.get('value'),
+                    'text': durationModel.get('text')
+                });
+            });
+            this.$('#duration-input').append(optionsHtml);
+            return this;
+        },
+
+        bindValidation: function () {
             validation.bind(this, {
-                selector: 'id'
+                selector: 'name'
             });
-            this.$("#contactNumber").formatter({
-                'pattern': phoneNumberPattern,
-                'persistent': false
-            });
+            return this;
+        },
 
-            this.$("#contactNumber").val(this.myPersonnelModel.get('fixedPhone'));
-            this.$("#contactNumber").formatter().resetPattern();
-            this.validateAndSetProperty("stationType", this.stationModel.get('stationType'));
-            if (this.stationModel.get('stationType') === 'TC') {
-                this.validateAndSetProperty("dispatchCenterId", '777');
-                this.$('#dispatchCenterId').hide();
+        validatePreconditions: function () {
+            var isValid = true;
+            if (this.stationModel.get('hasHazard') === true) {
+                isValid = false;
+                this.trigger('error', utils.getResource('hazardErrorMessage'));
             }
-            this.updateModelFromView();
-            this.$('#otherPurpose').closest('.row').hide();
+            if (this.myOpenStationEntryLogModel && this.myOpenStationEntryLogModel.has('stationEntryLogId')) {
+                isValid = false;
+                this.trigger('error', utils.getResource('openCheckInErrorMessage'));
+            }
+            return isValid;
+        },
+
+        updateModelFromDependencies: function () {
+            this.model.set({
+                stationId: this.stationModel.get('stationId'),
+                stationName: this.stationModel.get('stationName'),
+                stationType: this.stationModel.get('stationType'),
+                distance: this.stationModel.get('distance'),
+                latitude: this.stationModel.get('latitude'),
+                longitude: this.stationModel.get('longitude'),
+                personnelId: this.myPersonnelModel.get('personnelId'),
+                userName: this.myPersonnelModel.get('userName'),
+                userRole: this.myPersonnelModel.get('userRole'),
+                personnelType: this.myPersonnelModel.get('personnelType'),
+                firstName: this.myPersonnelModel.get('firstName'),
+                middleName: this.myPersonnelModel.get('middleName'),
+                lastName: this.myPersonnelModel.get('lastName'),
+                contactNumber: this.myPersonnelModel.get('contactNumber'),
+                email: this.myPersonnelModel.get('email'),
+                companyName: this.myPersonnelModel.get('companyName')
+            });
+            return this;
+        },
+
+        updateViewFromModel: function () {
+            this.updateStationNameLabel();
+            this.updateDistanceLabel();
+            this.updateContactNumberInput();
+            return this;
+        },
+
+        updateStationNameLabel: function () {
+            if (this.model.has('stationName')) {
+                var stationName = this.model.get('stationName');
+                this.$('#station-name-label').text(stationName);
+            }
+            return this;
+        },
+
+        updateDistanceLabel: function () {
+            if (this.model.has('distance')) {
+                var distance = this.model.get('distance').toFixed(2);
+                this.$('#distance-label').text(utils.formatString(utils.getResource('distanceFormatString'), [distance]));
+            } else {
+                this.$('#distance-label').text(utils.getResource('distanceUnavailableErrorMessage'));
+            }
+            return this;
+        },
+
+        updateContactNumberInput: function () {
+            if (this.model.has('contactNumber')) {
+                var contactNumber = this.model.get('contactNumber');
+                this.$('#contact-number-input').val(utils.formatPhone(contactNumber));
+                this.$('[data-parent="#contact-number-input"]').toggleClass('hidden', (contactNumber.length === 0));
+            }
+            return this;
+        },
+
+        updateDurationInput: function (newDuration) {
+            if (newDuration) {
+                this.model.set({
+                    duration: newDuration
+                });
+            }
+            if (this.model.has('duration')) {
+                var duration = this.model.get('duration');
+                this.$('#duration-input').val(duration);
+            }
+            return this;
+        },
+
+        updateExpectedOutTimeLabel: function (duration) {
+            if (duration) {
+                var currentTime = new Date();
+                var expectedOutTime = utils.addMinutes(currentTime, duration);
+                this.model.set({
+                    expectedOutTime: expectedOutTime
+                });
+            }
+            if (this.model.has('expectedOutTime')) {
+                this.$('#expected-out-time-label').text(utils.formatDate(this.model.get('expectedOutTime')));
+            }
 
             return this;
         },
-        showError: function(errorMessage) {
-            var msg = errorMessage || "Error retrieving data for Check-In Screen. Please call the dispatch center to check in.";
-            this.dispatcher.trigger(EventNameEnum.showErrorView, msg);
-        },
-        beforeShow: function(errorMessage) {
-            if (!this.renderError) {
-                var currentContext = this;
-                currentContext.showLoading(true);
-                currentContext.showStationEntryDialogs(false);
-                currentContext.showStationWarningsDialog(false);
-                currentContext.showCheckInDialog(false);
-                currentContext.showDistanceDialog(false);
 
-                if (currentContext.stationModel && currentContext.stationModel.get("hasCoordinates")) {
-                    currentContext.locationModel.getCurrentPosition(
-                            function(position) {
-                                var distance = currentContext.locationModel.calculateDistanceFromCurrentPosition(currentContext.stationModel.get('coords'));
-                                currentContext.stationModel.set('distance', distance);
-                                currentContext.stationModel.set('hasDistanceWarning', currentContext.stationModel.get('distance') > env.getStationCheckinWarningDistance());
-                                currentContext.beforeShowAfterGps();
-                            },
-                            function(error) {
-                                currentContext.setStationDistanceError(currentContext.locationModel.get("errorMessage") || error);
-                                currentContext.beforeShowAfterGps();
-                            }
-                    );
-                } else {
-                    currentContext.setStationDistanceError("Unable to determine distance.  Station is missing coordinates.");
-                    currentContext.beforeShowAfterGps();
-                }
-                return true;
-            } else {
-                return false;
+        purposeChanged: function (event) {
+            if (event) {
+                event.preventDefault();
             }
+            var purpose = this.$('#purpose-input option:selected').text();
+            this.$('#purpose-other-input-container').toggleClass('hidden', (purpose !== 'other'));
+            if (!this.manualDurationEntry) {
+                var defaultDuration = this.$('#purpose-input').val();
+                this.updateDurationInput(defaultDuration);
+                this.updateExpectedOutTimeLabel(defaultDuration);
+            }
+            return this;
         },
-        getStationById: function(options) {
-            options || (options = {});
-            var data = $.param(options);
 
-            return $.ajax({
-                contentType: 'application/json',
-                data: data,
-                dataType: 'json',
-                type: 'GET',
-                url: env.getApiUrl() + '/station/find'
-            });
+        durationChanged: function (event) {
+            if (event) {
+                event.preventDefault();
+            }
+            this.manualDurationEntry = true;
+            var duration = Number(this.$('#duration-input').val());
+            this.updateExpectedOutTimeLabel(duration);
+            return this;
         },
-        getStationWarningsByStationId: function(options) {
-            options || (options = {});
-            var data = $.param(options);
 
-            return $.ajax({
-                contentType: 'application/json',
-                data: data,
-                dataType: 'json',
-                type: 'GET',
-                url: env.getApiUrl() + '/station/warning'
-            });
+        submitCheckIn: function (event) {
+            if (event) {
+                event.preventDefault();
+            }
+            this.showProgress(false, utils.getResource('checkInProgressMessageText'));
+            this.updateModelFromView();
+            this.model.validate();
+            return this;
         },
-        getOptions: function(options) {
-            options || (options = {});
-            var data = $.param(options);
 
-            return $.ajax({
-                contentType: 'application/json',
-                data: data,
-                dataType: 'json',
-                type: 'GET',
-                url: env.getApiUrl() + '/lookupDataItem/find/options'
-            });
-        },
-        addAllStationWarnings: function() {
-            _.each(this.stationWarningCollection.models, this.addOneStationWarning, this);
-        },
-        addOneStationWarning: function(stationWarningModel) {
-            var currentContext = this;
-            var stationWarningText = '<li>' + stationWarningModel.get('warning') + '</li>';
-            currentContext.$('#station-warnings-list').append(stationWarningText);
-        },
-        addAllDurations: function() {
-            _.each(this.durationCollection.models, this.addOneDuration, this);
-        },
-        addOneDuration: function(durationModel) {
-            var currentContext = this;
-            var durationText = '<option value="' + durationModel.get('itemValue') + '">' + durationModel.get('itemText') + '</li>';
-            currentContext.$('#duration').append(durationText);
-        },
-        addAllPurposes: function() {
-            _.each(this.purposeCollection.models, this.addOnePurpose, this);
-            this.addOnePurpose(new Backbone.Model({itemText: 'Other', itemAdditionalData: ''}));
-        },
-        addOnePurpose: function(purposeModel) {
-            var currentContext = this;
-            var purposeText = '<option value="' + purposeModel.get('itemAdditionalData') + '">' + purposeModel.get('itemText') + '</li>';
-            currentContext.$('#selectPurpose').append(purposeText);
-        },
-        beforeShowAfterGps: function() {
-            var currentContext = this;
-//            this.stationModel.fetch({
-//                success: function(model, resp, options) {
-//                    // fetched refreshed stationModel 
-//                    if (currentContext.checkHazardWarning()) {
-//                        currentContext.hideLoadingStationDistance();
-//                    }
-//                    else {
-//                        currentContext.checkDistanceWarning();
-//                        if (!currentContext.stationModel.get('hasDistanceWarning')) {
-//                            currentContext.checkRestrictedWarning();
-//                            currentContext.hideLoadingStationDistance();
-//                        }
-//                    }
-//                    currentContext.hideLoadingStationData();
-//                }
-//            });
-            var stationId = this.model.get('stationId');
-            var requestData = {
-                'stationId': stationId
-            };
-            var idRegex = /^\d+$/;
-            if (idRegex.test(stationId)) {
-                requestData.stationType = 'TD';
-                requestData.includeDol = true;
-                requestData.includeNoc = false;
-            } else {
-                requestData.stationType = 'TC';
-                requestData.includeDol = false;
-                requestData.includeNoc = true;
+        updateModelFromView: function () {
+            var attributes = {};
+            var rawContactNumber = this.$('#contact-number-input').val();
+            attributes.contactNumber = utils.cleanPhone(rawContactNumber);
+            attributes.purpose = this.$('#purpose-input option:selected').text();
+            if (this.$('#purpose-input').prop('selectedIndex') === 0) {
+                attributes.purpose = '';
             }
-            if (requestData.stationType === 'TD') {
-                $.when(currentContext.getStationById(requestData), currentContext.getOptions()).done(function(getStationsResponse, getOptionsResponse) {
-                    var getStationsData = getStationsResponse[0];
-                    var getOptionsData = getOptionsResponse[0];
-                    currentContext.model.set(getStationsData.stations[0]);
-                    currentContext.purposeCollection = new Backbone.Collection(getOptionsData.dolPurposes);
-                    currentContext.durationCollection = new Backbone.Collection(getOptionsData.dolDurations);
-                    currentContext.addAllPurposes();
-                    currentContext.addAllDurations();
-                    if (currentContext.checkHazardWarning()) {
-                        currentContext.hideLoadingStationDistance();
-                    }
-                    else {
-                        currentContext.checkDistanceWarning();
-                        if (!currentContext.stationModel.get('hasDistanceWarning')) {
-                            currentContext.checkStationWarnings();
-                            currentContext.hideLoadingStationDistance();
-                        }
-                    }
-                    currentContext.hideLoadingStationData();
-                });
-            } else {
-                $.when(currentContext.getStationById(requestData), currentContext.getOptions(), currentContext.getStationWarningsByStationId(requestData)).done(function(getStationsResponse, getOptionsResponse, getStationWarningsResponse) {
-                    var getStationsResponseData = getStationsResponse[0];
-                    var getOptionsData = getOptionsResponse[0];
-                    var getStationWarningsResponseData = getStationWarningsResponse[0];
-                    currentContext.model.set(getStationsResponseData.stations[0]);
-                    currentContext.purposeCollection = new Backbone.Collection(getOptionsData.nocPurposes);
-                    currentContext.durationCollection = new Backbone.Collection(getOptionsData.nocDurations);
-                    currentContext.addAllPurposes();
-                    currentContext.addAllDurations();
-                    currentContext.stationWarningCollection.reset(getStationWarningsResponseData.stationWarnings);
-                    if (currentContext.checkHazardWarning()) {
-                        currentContext.hideLoadingStationDistance();
-                    }
-                    else {
-                        currentContext.checkDistanceWarning();
-                        if (!currentContext.stationModel.get('hasDistanceWarning')) {
-                            currentContext.checkStationWarnings();
-                            currentContext.hideLoadingStationDistance();
-                        }
-                    }
-                    currentContext.hideLoadingStationData();
-                });
+            if (attributes.purpose === 'other') {
+                attributes.purposeOther = this.$('#purpose-other-input').val();
             }
+            attributes.duration = this.$('#duration-input').val();
+            attributes.withCrew = this.$('#yes-with-crew-input').is(':checked');
+            var selectedDispatchCenter = this.$('input:radio[name="dispatchCenterId"]:checked').attr('id');
+            if (selectedDispatchCenter === 'transmission-dispatch-center-check-in-input') {
+                attributes.dispatchCenterId = this.stationModel.get('transmissionDispatchCenterId');
+            } else if (selectedDispatchCenter === 'distribution-dispatch-center-check-in-input') {
+                attributes.dispatchCenterId = this.stationModel.get('distributionDispatchCenterId');
+            }
+            attributes.additionalInfo = this.$('#additional-info-input').val();
+            this.model.set(attributes);
+            return this;
         },
-        events: {
-            "click #checkInBtn": "checkIntoStation",
-            "click #checkInBtnCancel,#hazardWarningOk, #stationWarningsNo": "cancelCheckIn",
-            "click #stationWarningsContinue": "onStationWarningsContinue",
-            "keyup #contactNumber,#otherPurpose, #additionalInfo": "keyUp",
-            "focus #contactNumber": "onContactNumberFocus",
-            "change #selectPurpose": "selectPurpose",
-            "change #duration": "selectDuration",
-            "change #noHasCrew,#yesHasCrew": "hasCrewChange",
-            "click #distanceWarningNo,#distanceWarningYes": "onDistanceWarningClick",
-            "change #tdcRadio, #ddcRadio": "selectDispatchCenter",
-            "click #clearManualSearchBtn": "onClearManualSearch"
 
-        },
-        /**** Form Handling ****/
-        hasCrewChange: function(event) {
-            var hasCrew = !this.$('#has-crew-row').hasClass('hasCrew');
-            if (hasCrew) {
-                this.$('#has-crew-row').addClass('hasCrew');
-            }
-            else {
-                this.$('#has-crew-row').removeClass('hasCrew');
-            }
-            this.validateAndSetProperty("hasCrew", hasCrew);
-        },
-        selectPurpose: function(event) {
-            var propName = event.target.id;
-            var val = $(event.target).val();
-            var label = $("option:selected", event.target).text();
-
-            if (!this.durationManuallySelected)
-            {
-                if (val && this.$("#duration option[value=" + val + "]").length > 0) {
-                    this.$("#duration option[value=" + val + "]").prop("selected", "selected");
-                } else {
-                    this.$("#duration option").prop("selected", "");
-                }
-            }
-
-            this.validateAndSetProperty(propName, label);
-            this.enableOtherPurpose(label === "Other");
-
-        },
-        selectDuration: function(event) {
-            var propName = event.target.id,
-                    val, label;
-            if ($(event.target).prop("selectedIndex") === 0) {
-                val = null;
-                label = null;
-            } else {
-                val = $(event.target).val();
-                label = $("option:selected", event.target).text();
-                this.durationManuallySelected = true;
-            }
-
-            this.validateAndSetProperty(propName, val);
-        },
-        selectDispatchCenter: function(event) {
-            var dc = $('input:radio[name=dispatchCenterId]:checked').attr("id");
-            $('#dispatchCenterId').attr('data-dispatchCenter', dc);
-            var dispatchCenterId = null;
-
-            if (dc === "tdcRadio") {
-                dispatchCenterId = this.stationModel.get("transmissionDispatchCenterId");
-            } else if (dc === "ddcRadio") {
-                dispatchCenterId = this.stationModel.get("distributionDispatchCenterId");
-            }
-            this.validateAndSetProperty("dispatchCenterId", dispatchCenterId);
-        },
-        keyUp: function(event) {
-            var propName = event.target.id;
-            var val = $(event.target).val();
-            if (val && val.length > 0) {
-                this.$('#clearManualSearchBtn').show();
-            }
-            this.validateAndSetProperty(propName, val);
-        },
-        onContactNumberFocus: function(event) {
-            // using a timeout, otherwise the selection doesn't work
-            setTimeout(function() {
-                if (event.target.setSelectionRange) {
-                    event.target.setSelectionRange(0, 15);
-                } else {
-                    event.target.select();
-                }
-            }, 10);
-        },
-        validateAndSetProperty: function(propName, val) {
-            this.model.set(propName, val);
-            this.model.validate(propName);
-
-            //console.debug('validateAndSetProperty: ' + propName);
-
-            if (this.model.isValid(propName)) {
-                this.$('#' + propName).closest('.row').removeClass('cico-error');
-            } else {
-                this.$('#' + propName).closest('.row').addClass('cico-error');
-            }
-
-            //console.debug("isValid: " + this.model.isValid(propName) + " / " + this.model.isValid());
-        },
-        updateModelFromView: function() {
-            var hasCrew = this.$("input:radio[name=switch-HasCrew]:checked").val();
-            var contactNumber = this.$("#contactNumber").val();
-            var purpose = this.$("#selectPurpose option:selected").text();
-            var duration = $("#duration").val();
-            var dc = $('input:radio[name=dispatchCenterId]:checked').attr("id");
-            var dispatchCenterId = null;
-            var additionalInfo = this.$("#additionalInfo").val();
-            if (typeof (additionalInfo) !== "undefined") {
-                additionalInfo = additionalInfo.trim();
-            }
-
-            if ($("#duration").prop("selectedIndex") === 0) {
-                duration = null;
-            }
-
-            if (purpose === "Other") {
-                var purposeOverride = this.$("#otherPurpose").val();
-                purpose = purposeOverride;
-            }
-            else {
-                this.enableOtherPurpose(false);
-            }
-
-            if (this.stationModel.get('stationType') === 'TD') {
-                if (dc === "tdcRadio") {
-                    dispatchCenterId = this.stationModel.get("transmissionDispatchCenterId");
-                } else if (dc === "ddcRadio") {
-                    dispatchCenterId = this.stationModel.get("distributionDispatchCenterId");
-                }
-            }
-
-            if (this.stationModel.get('stationType') === 'TC') {
-                this.validateAndSetProperty("linkedStationId", this.stationModel.get('linkedStationId'));
-                this.validateAndSetProperty("linkedStationName", this.stationModel.get('linkedStationName'));
-                this.validateAndSetProperty("stationName", this.stationModel.get('stationName'));
-            }
-            this.validateAndSetProperty("hasCrew", hasCrew);
-            this.validateAndSetProperty("contactNumber", contactNumber);
-            this.validateAndSetProperty("purpose", purpose);
-            this.validateAndSetProperty("duration", duration);
-            this.validateAndSetProperty("additionalInfo", additionalInfo);
-            if (this.stationModel.get('stationType') === 'TC') {
-                this.validateAndSetProperty("dispatchCenterId", '777');
-                this.$('#dispatchCenterId').hide();
-            } else if (this.stationModel.get('stationType') === 'TD') {
-                this.validateAndSetProperty("dispatchCenterId", dispatchCenterId);
-            }
-            this.model.validate(true);
-
-            if (contactNumber) {
-                this.$('#clearManualSearchBtn').show();
-            }
-        },
-        onValidated: function(isValid, model, errors) {
+        onValidated: function (isValid, model, errors) {
+            this.$validating.removeClass('invalid');
             if (isValid) {
-                this.enableFormSubmit();
+                this.checkIn();
             } else {
-//                console.error(errors);
-                this.disableFormSubmit();
+                for (var error in errors) {
+                    this.$('[name="' + error + '"]').parent().addClass('invalid');
+                }
+                this.showLoading();
             }
+            return this;
         },
-        enableFormSubmit: function() {
-            this.$('#checkInBtn').removeClass('disabled').removeClass('secondary').addClass('success');
-        },
-        disableFormSubmit: function() {
-            this.$('#checkInBtn').addClass('disabled').removeClass('success').addClass('secondary');
-        },
-        cancelCheckIn: function(event) {
+
+        checkIn: function (event) {
             if (event) {
                 event.preventDefault();
             }
+            this.dispatcher.trigger(EventNameEnum.checkIn, this.model);
+            return this;
+        },
 
+        cancelCheckIn: function (event) {
+            if (event) {
+                event.preventDefault();
+            }
             this.hide();
+            return this;
         },
-        checkIntoStation: function(event) {
-            if (event) {
-                event.preventDefault();
-            }
 
-            if (this.model.isValid()) {
-                this.dispatcher.trigger(EventNameEnum.checkIntoStation, this.model);
-                this.hide();
-            }
+        onCheckInSuccess: function () {
+            var stationName = this.model.get('stationName');
+            var formattedInTime = utils.formatDate(this.model.get('inTime'));
+            var checkInSuccessMessageText = utils.formatString(utils.getResource('checkInSuccessMessageTextFormatString'), [stationName, formattedInTime]);
+            this.hideProgress();
+            this.showInfo(checkInSuccessMessageText);
         },
-        enableOtherPurpose: function(enable) {
-            var propName = "otherPurpose";
-            if (enable) {
-                this.$('#otherPurpose').closest('.row').show();
-            } else {
-                this.$('#otherPurpose').closest('.row').hide();
-            }
-            if (this.model.isValid(propName)) {
-                this.$('#' + propName).closest('.row').removeClass('cico-error');
-            } else {
-                this.$('#' + propName).closest('.row').addClass('cico-error');
-            }
-            if (this.el.className === 'modal') {
-                //this.recenter();
-            }
-        },
-        /**** Hazard Handling ****/
-        checkHazardWarning: function() {
-            if (this.stationModel.get('hasHazard')) {
-                this.showHazardDialog(true);
-                return true;
-            }
-            else {
-                this.showHazardDialog(false);
-            }
-            return false;
-        },
-        /**** Loading Handling ****/
-        showLoading: function(show) {
-            if (!show) {
-                this.$('#loading-dialog').hide();
-            }
-            else {
-                this.$('#loading-dialog').show();
-            }
-            this.tryRecent();
-        },
-        /**** Distance Handling ****/
-        checkDistanceWarning: function() {
-            if (this.stationModel && this.stationModel.get("hasCoordinates")) {
-                var currentContext = this;
-                currentContext.locationModel.getCurrentPosition(
-                        function(position) {
-                            var distance = currentContext.locationModel.calculateDistanceFromCurrentPosition(currentContext.stationModel.get('coords'));
-                            currentContext.stationModel.set('distance', distance);
-                            currentContext.stationModel.set('hasDistanceWarning', currentContext.stationModel.get('distance') > env.getStationCheckinWarningDistance());
 
+        onCheckInError: function (error) {
+            this.showError(error);
+        },
 
-                            if (currentContext.stationModel.get('distance')) {
-                                currentContext.$('.currentLocationSuccess').show();
-                                currentContext.$('.distanceWarningDistance').html(currentContext.stationModel.get('distance'));
-                                currentContext.$('.currentLocationLoading').hide();
-                            }
-
-                            if (currentContext.stationModel.get('hasDistanceWarning')) {
-                                currentContext.$('.stationDistance').addClass("hasDistanceWarning");
-                                currentContext.showDistanceDialog(true);
-                            }
-                            else {
-                                currentContext.showDistanceDialog(false);
-                            }
-                            currentContext.hideLoadingStationDistance();
-                        },
-                        function(error) {
-                            currentContext.setStationDistanceError(currentContext.locationModel.get("errorMessage") || error);
-                        }
-                );
-            }
-
-
-        },
-        onDistanceWarningClick: function(event) {
-            if (event) {
-                event.preventDefault();
-                if (event.currentTarget.id === "distanceWarningNo") {
-                    this.hide();
-                }
-                else {
-                    this.showDistanceDialog(false);
-                    if (!this.checkStationWarnings()) {
-                        this.showCheckInDialog(true);
-                    }
-                }
+        onLoaded: function () {
+            if (this.validatePreconditions()) {
+                this.updateModelFromDependencies();
+                this.updateViewFromModel();
+                this.showLoading();
             }
         },
-        setStationDistanceError: function(errorMessage) {
-            this.$('.currentLocationError').html(errorMessage).show();
-            this.$('.currentLocationSuccess').hide();
-            this.$('.currentLocationLoading').hide();
-            this.showDistanceDialog(false);
-            this.checkDistanceWarning();
-        },
-        /**** Restricted Handling ****/
-        checkStationWarnings: function() {
-            if (this.stationModel.get('hasWarnings')) {
-                this.showStationWarningsDialog(true);
-                this.showCheckInDialog(false);
-                return true;
-            }
-            else {
-                this.showStationWarningsDialog(false);
-                this.showCheckInDialog(true);
-                return false;
-            }
-        },
-        onStationWarningsContinue: function(event) {
-            event.preventDefault();
-            this.showStationWarningsDialog(false);
-            this.showCheckInDialog(true);
-        },
-        hideLoadingStationData: function() {
-            this.canHideLoadingStationData = true;
-            this.tryHideLoading();
-        },
-        hideLoadingStationDistance: function() {
-            this.canHideLoadingStationDistance = true;
-            this.tryHideLoading();
-        },
-        tryHideLoading: function() {
-            if (this.canHideLoadingStationDistance && this.canHideLoadingStationData) {
-                var currentContext = this;
-                setTimeout(function() {
-                    currentContext.showLoading(false);
-                    currentContext.showStationEntryDialogs(true);
-                }, 500);
-            }
-        },
-        showStationEntryDialogs: function(show) {
-            if (!show) {
-                this.$('#stationEntry-dialogs').hide();
-            }
-            else {
-                this.$('#stationEntry-dialogs').show();
-                this.tryRecent();
-            }
-        },
-        showCheckInDialog: function(show) {
-            if (!show) {
-                this.$('#checkIn-dialog').hide();
-            }
-            else {
-                this.$('#checkIn-dialog').show();
-                this.tryRecent();
-            }
-        },
-        showStationWarningsDialog: function(show) {
-            if (!show) {
-                this.$('#station-warnings-dialog').hide();
-            }
-            else {
-                this.$('#station-warnings-dialog').show();
-                this.tryRecent();
-            }
-        },
-        showHazardDialog: function(show) {
-            if (!show) {
-                this.$('#hazard-dialog').hide();
-            }
-            else {
-                this.$('#hazard-dialog').show();
-            }
-            this.tryRecent();
-        },
-        showDistanceDialog: function(show) {
-            if (!show) {
-                this.$('#distance-dialog').hide();
-            }
-            else {
-                if (this.stationModel && !this.stationModel.get('hasHazard')) {
-                    this.$('#distance-dialog').show();
-                }
-            }
-            this.tryRecent();
-        },
-        onClearManualSearch: function(event) {
-            if (event) {
-                event.preventDefault();
-                this.$('#contactNumber').focus();
-                this.$('#clearManualSearchBtn').hide();
-            }
-            this.$('#contactNumber').val('');
-            this.validateAndSetProperty("contactNumber", "");
-
-        },
-        tryRecent: function() {
-            if (this.el.className === 'modal') {
-                this.recenter();
-            }
+        
+        onError: function(error) {
+            this.showError(error);
         }
+
     });
-    
+
     return CheckInModalView;
+
 });

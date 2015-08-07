@@ -1,68 +1,152 @@
 <div class="station-detail-view">
     <div class="card-wrap">
-        <div class="card station-detail-loading-image-container">
+
+        <div class="card {{cid}}-progress">
             <span class="loading-message">{{resource "stationDetailLoadingMessageText"}}</span>
-            <img class="loading-image" src="{{resource 'loadingImageSrc'}}" alt="{{resource 'loadingImageAlt'}}"/>
+            <img class="loading-image" src="{{resource 'progressImageSrc'}}" alt="{{resource 'progressImageAlt'}}"/>
         </div>
-        <div class="card hidden wait-for-loaded">
 
-            <h1 id="station-name-label" class="text-center"></h1>
+        <div class="card hidden {{cid}}-error">
+            <span class="error-message">{{resource "stationDetailErrorMessageText"}}</span>
+        </div>
 
-            <div class="">
-                <span id="distance-label"></span>&nbsp;|&nbsp;<a id="go-to-directions-button" href="#" tabindex="0"><i class="fa {{resource 'directionsIcon'}}"></i>{{resource 'directionsButtonText'}}</a>
-            </div>
+        <div class="hidden {{cid}}-loading">
 
-            <div id="check-in-container" class="hidden">
-                <a id="go-to-check-in-button" class="button radius success" href="#" tabindex="0">{{resource "checkInButtonText"}}</a>
-            </div>
-            <div id="check-out-container" class="hidden">
-                <a id="go-to-edit-check-in-button" class="button radius" href="#" tabindex="0">{{resource "editCheckInButtonText"}}</a>
-                <div id="expected-check-out-container">
-                    <span id="expected-check-out-label"></span>
+            <div class="card">
+                <div id="station-header-container">
+                    <h1 id="station-name-header"></h1>
+                    <i id="station-hazard-icon" class="fa {{resource 'hazardIcon'}}"></i>
+                    <i id="station-warning-icon" class="fa {{resource 'warningIcon'}}"></i>
+                    <i id="station-abnormal-condition-icon" class="fa {{resource 'abnormalConditionIcon'}}"></i>
+                    <i id="station-open-check-in-icon" class="fa {{resource 'openCheckInIcon'}}"></i>
                 </div>
-                <a id="go-to-check-out-button" class="button radius warning" href="#" tabindex="0">{{resource "checkOutButtonText"}}</a>
+
+                <div id="gps-container">
+                    <span id="station-distance-label"></span><span id="station-distance-directions-separator">{{resource "distanceDirectionsSeparator"}}</span><a id="go-to-directions-button" href="#" tabindex="0">{{resource 'directionsButtonText'}}<i class="fa {{resource 'directionsIcon'}}"></i></a>
+                </div>
+
+                <div id="parent-station-container" class="linked-station-container hidden">
+                    <span>{{resource "parentStationLinkPreMessageText"}}</span>
+                    <a id="go-to-parent-station-button" class="" href="#" tabindex="0"></a>
+                    <span>{{resource "parentStationLinkPostMessageText"}}</span>
+                </div>
+
+                <div id="child-station-container" class="linked-station-container hidden">
+                    <span>{{resource "childStationLinkPreMessageText"}}</span>
+                    <a id="go-to-child-station-button" class="" href="#" tabindex="0"></a>
+                    <span>{{resource "childStationLinkPostMessageText"}}</span>
+                </div>
+
+                <div id="check-in-container" class="hidden">
+                    <a id="go-to-check-in-button" class="button radius success" href="#" tabindex="0">{{resource "checkInButtonText"}}</a>
+                </div>
+                <div id="check-out-container" class="hidden">
+                    <a id="go-to-edit-check-in-button" class="button radius" href="#" tabindex="0">{{resource "editCheckInButtonText"}}</a>
+
+                    <div id="expected-check-out-container">
+                        <span id="expected-check-out-label"></span>
+                    </div>
+                    <a id="go-to-check-out-button" class="button radius warning" href="#" tabindex="0">{{resource "checkOutButtonText"}}</a>
+                </div>
+
+                <div id="open-check-in-container" class="hidden">
+                    <a id="go-to-open-check-in-button" class="button radius secondary" href="#" tabindex="0">{{resource "openCheckInButtonText"}}</a>
+                </div>
+
+                <div id="hazard-notification-container" class="hidden">
+                    <span id="hazard-notification-label" class="alert">{{resource "hazardNotificationMessageText"}}</span>
+                </div>
+
+                <div id="transmission-dispatch-center-container" class="dispatch-center-container hidden">
+                    <span>{{resource "transmissionDispatchCenterHeaderText"}}</span><span id="transmission-dispatch-center-name-label"></span><span id="transmission-dispatch-center-phone-label"></span><i id="transmission-dispatch-center-check-in-icon" class="fa {{resource 'checkIcon'}} hidden"></i>
+                </div>
+                <div id="distribution-dispatch-center-container" class="dispatch-center-container hidden">
+                    <span>{{resource "distributionDispatchCenterHeaderText"}}</span><span id="distribution-dispatch-center-name-label"></span><span id="distribution-dispatch-center-phone-label"></span><i id="distribution-dispatch-center-check-in-icon" class="fa {{resource 'checkIcon'}} hidden"></i>
+                </div>
+                <div id="network-operations-center-container" class="dispatch-center-container hidden">
+                    <span>{{resource "networkOperationsCenterHeaderText"}}</span><span id="network-operations-center-name-label"></span><span id="network-operations-center-phone-label"></span><i id="network-operations-center-check-in-icon" class="fa {{resource 'checkIcon'}} hidden"></i>
+                </div>
             </div>
 
-            <div id="open-check-in-container" class="hidden">
-                <a id="go-to-open-check-in-button" class="button radius secondary" href="#" tabindex="0">{{resource "openCheckInButtonText"}}</a>
+            <div id="hazard-detail-container" class="hazard-view card hidden">
+                <div class="panel panel-collapse active">
+                    <div data-target="#panel-collapse-hazard-details" data-toggle="panel">
+                        <div class="right">
+                            <i class="fa {{resource 'toggleShowIcon'}} toggle-show"></i>
+                            <i class="fa {{resource 'toggleHideIcon'}} toggle-hide"></i>
+                        </div>
+                        <div class="hazard-info">
+                            <span>Hazard Detail</span>
+                        </div>
+                    </div>
+                    <div id="panel-collapse-hazard-details" class="panel-active-show collapse in">
+                        <span id="hazard-detail-label"></span>
+                    </div>
+                </div>
             </div>
 
-            <div id="hazard-notification-container" class="hidden">
-                <span id="hazard-notification-label" class="alert"></span>
+            <div id="station-details-container" class="card">
+                <div class="panel panel-collapse active">
+                    <div data-target="#panel-collapse-station-details" data-toggle="panel">
+                        <div class="right">
+                            <i class="fa {{resource 'toggleShowIcon'}} toggle-show"></i>
+                            <i class="fa {{resource 'toggleHideIcon'}} toggle-hide"></i>
+                        </div>
+                        <div class="panel-title">
+                            <span>{{resource "stationDetailsHeaderText"}}</span>
+                        </div>
+                    </div>
+                    <div id="panel-collapse-station-details" class="panel-active-show collapse in">
+                        <div class="list-wrap">
+                            <div class="list-item">
+                                <div class="tile-inner"><span>{{resource "phoneHeaderText"}}</span><span id="phone-label"></span></div>
+                            </div>
+                            <div class="list-item">
+                                <div class="list-item-inner"><span>{{resource "radioChannelHeaderText"}}</span><span id="radio-channel-label"></span></div>
+                            </div>
+                            <div class="list-item">
+                                <div class="list-item-inner"><span>{{resource "emergencyContactsHeaderText"}}</span><span id="emergency-contacts-label"></span></div>
+                            </div>
+                            <div class="list-item">
+                                <div class="list-item-inner"><span>{{resource "cityHeaderText"}}</span><span id="city-label"></span></div>
+                            </div>
+                            <div class="list-item">
+                                <div class="list-item-inner"><span>{{resource "countyHeaderText"}}</span><span id="county-label"></span></div>
+                            </div>
+                            <div class="list-item">
+                                <div class="list-item-inner"><span>{{resource "stateHeaderText"}}</span><span id="state-label"></span></div>
+                            </div>
+                            <div class="list-item">
+                                <div class="list-item-inner"><span>{{resource "coordinatesHeaderText"}}</span><span id="lat-lng-label"></span></div>
+                            </div>
+                            <div class="list-item">
+                                <div class="list-item-inner"><span>{{resource "directionsHeaderText"}}</span><span id="directions-label"></span></div>
+                            </div>
+                            <div class="list-item">
+                                <div class="list-item-inner"><span>{{resource "additionalDataHeaderText"}}</span><span id="additional-data-label"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div id="tdc-dispatcher-container" class="hidden">
-                <span>{{resource "tdcHeaderText"}}</span><span class="tdc-dispatcher-phone-label"></span><i id="tdc-check-in-icon" class="fa {{resource 'checkIcon'}}"></i>
+            <div id="abnormal-condition-collection-view-container" class="card">
             </div>
-            <div id="ddc-dispatcher-container" class="hidden">
-                <span>{{resource "ddcHeaderText"}}</span><span class="ddc-dispatcher-phone-label"></span><i id="ddc-check-in-icon" class="fa {{resource 'checkIcon'}}"></i>
+
+            <div id="warning-collection-view-container" class="card">
             </div>
-            <div id="noc-dispatcher-container" class="hidden">
-                <span>{{resource "nocHeaderText"}}</span><span class="tcom-dispatcher-phone-label"></span><i id="noc-check-in-icon" class="fa {{resource 'checkIcon'}}"></i>
+
+            <div id="station-data-container" class="card">
             </div>
+
+            <div id="open-station-entry-log-collection-view-container" class="card">
+            </div>
+
+            <div id="recent-station-entry-log-collection-view-container" class="card">
+            </div>
+
         </div>
+
     </div>
 
-    <div class="tile-wrap hidden wait-for-loaded">
-
-        <div id="hazard-detail-container" class="hidden">
-            <span id="hazard-detail-label"></span>
-        </div>
-
-        <div id="station-data-view-container" class="">
-        </div>
-
-        <div id="open-station-entry-log-collection-view-container">
-        </div>
-
-        <div id="recent-station-entry-log-collection-view-container">
-        </div>
-
-        <div id="abnormal-station-condition-collection-view-container">
-        </div>
-
-        <div id="warning-collection-view-container">
-        </div>
-
-    </div>
 </div>

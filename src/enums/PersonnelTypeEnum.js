@@ -2,8 +2,8 @@ define(function(require) {
     'use strict';
 
     var StationTypeEnum = {
-        td: 'TD',
-        tc: 'TC'
+        td: 1,
+        tc: 2
     };
     if (Object.freeze) {
         Object.freeze(StationTypeEnum);

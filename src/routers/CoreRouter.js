@@ -1,4 +1,4 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
@@ -23,15 +23,16 @@ define(function(require) {
     var EventDispatcher = require('dispatchers/EventDispatcher');
 
     var CoreRouter = SwappingRouter.extend({
-        initialize: function(options) {
-            console.debug('appRouter.initialize');
+        initialize: function (options) {
+            console.trace('appRouter.initialize');
             options || (options = {});
             var currentContext = this;
             currentContext.resolveDependencies();
             currentContext.renderShellView();
             currentContext.contentViewEl = currentContext.shellView.contentViewEl();
+            currentContext.modalViewEl = currentContext.shellView.modalViewEl();
         },
-        resolveDependencies: function() {
+        resolveDependencies: function () {
             var currentContext = this;
 
             //services
@@ -89,7 +90,7 @@ define(function(require) {
                 persistenceContext: currentContext.persistenceContext
             });
         },
-        renderShellView: function() {
+        renderShellView: function () {
             var currentContext = this;
             currentContext.shellView = new ShellView({
                 dispatcher: currentContext.dispatcher
@@ -100,42 +101,45 @@ define(function(require) {
         routes: {
             '': 'goToStationSearch',
             'station': 'goToStationSearch',
-            'station/:stationId': 'goToStationWithId',
+            'station/:stationId': 'goToStationDetailWithId',
+            'station/adhoc/:stationEntryLogId': 'goToAdHocStationWithId',
             'personnel': 'goToPersonnelSearch',
-            'personnel/outsideid/:outsideId': 'goToPersonnelWithId',
-            'personnel/username/:userName': 'goToPersonnelWithName',
-            'entry/adhoc/:stationEntryLogId': 'goToAdHocStationWithId'
+            'personnel/outsideid/:outsideId': 'goToPersonnelDetailWithId',
+            'personnel/username/:userName': 'goToPersonnelDetailWithUserName'
         },
-        goToStationSearch: function() {
-            console.debug('appRouter.goToStationSearch');
+        goToStationSearch: function () {
+            console.trace('appRouter.goToStationSearch');
             this.stationViewController.goToStationSearch();
         },
-        goToStationWithId: function(stationId) {
-            console.debug('appRouter.goToStationWithId');
+        goToStationDetailWithId: function (stationId) {
+            console.trace('appRouter.goToStationDetailWithId');
             var idRegex = /^\d+$/;
             if (idRegex.test(stationId)) {
-                this.stationViewController.goToStationWithId(parseInt(stationId, 10));
+                this.stationViewController.goToStationDetailWithId(parseInt(stationId, 10));
             } else {
-                this.stationViewController.goToStationWithId(stationId);
+                this.stationViewController.goToStationDetailWithId(stationId);
             }
         },
-        goToPersonnelSearch: function() {
-            console.debug('appRouter.goToPersonnelSearch');
+        goToAdHocStationWithId: function (stationEntryLogId) {
+            console.trace('appRouter.goToAdHocStationWithId');
+            var idRegex = /^\d+$/;
+            if (idRegex.test(stationEntryLogId)) {
+                this.stationViewController.goToAdHocStationWithId(parseInt(stationEntryLogId, 10));
+            }
+        },
+        goToPersonnelSearch: function () {
+            console.trace('appRouter.goToPersonnelSearch');
             this.personnelViewController.goToPersonnelSearch();
         },
-        goToPersonnelWithId: function(outsideId) {
-            console.debug('appRouter.goToPersonnelWithId');
-            this.personnelViewController.goToPersonnelWithId(outsideId);
+        goToPersonnelDetailWithId: function (outsideId) {
+            console.trace('appRouter.goToPersonnelDetailWithId');
+            this.personnelViewController.goToPersonnelDetailWithId(outsideId);
         },
-        goToPersonnelWithName: function(userName) {
-            console.debug('appRouter.goToPersonnelWithName');
-            this.personnelViewController.goToPersonnelWithName(userName);
+        goToPersonnelDetailWithUserName: function (userName) {
+            console.trace('appRouter.goToPersonnelDetailWithUserName');
+            this.personnelViewController.goToPersonnelDetailWithUserName(userName);
         },
-        goToAdHocStationWithId: function(stationEntryLogId) {
-            console.debug('appRouter.goToAdHocStationWithId');
-            this.stationViewController.goToAdHocStationWithId(stationEntryLogId);
-        },
-        navigate: function(fragment, options) {
+        navigate: function (fragment, options) {
             SwappingRouter.prototype.navigate.call(this, fragment, options);
             this.trigger('after-navigate', fragment, options);
         }

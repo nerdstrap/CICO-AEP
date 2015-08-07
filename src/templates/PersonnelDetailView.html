@@ -1,0 +1,41 @@
+<div class="personnel-detail-view">
+    <div class="card-wrap">
+
+        <div class="card {{cid}}-progress">
+            <span class="loading-message">{{resource "personnelDetailLoadingMessageText"}}</span>
+            <img class="loading-image" src="{{resource 'progressImageSrc'}}" alt="{{resource 'progressImageAlt'}}"/>
+        </div>
+
+        <div class="card hidden {{cid}}-error">
+            <span class="error-message">{{resource "personnelDetailErrorMessageText"}}</span>
+        </div>
+
+        <div class="hidden {{cid}}-loading">
+
+            <div class="card">
+                <div id="personnel-header-container">
+                    <h1 id="user-name-header"></h1>
+                </div>
+
+                <div>
+                    <a id="call-contact-number-button" href="#" tabindex="0"></a>
+                </div>
+
+                <div>
+                    <a id="send-email-button" href="#" tabindex="0"></a>
+                </div>
+
+            </div>
+
+            <div id="open-station-entry-log-view-container" class="card">
+                <div class="tile-wrap"></div>
+            </div>
+
+            <div id="recent-station-entry-log-collection-view-container" class="card">
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

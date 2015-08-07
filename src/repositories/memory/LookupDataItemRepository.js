@@ -20,7 +20,7 @@ define(function (require) {
         },
         {
             "value": "",
-            "text": "Other"
+            "text": "other"
         }
     ];
     var _durations = [
@@ -65,19 +65,19 @@ define(function (require) {
     ];
 
     var LookupDataItemRepository = function (options) {
-        options || (options = {});
         this.initialize.apply(this, arguments);
     };
 
     _.extend(LookupDataItemRepository.prototype, {
+
         initialize: function (options) {
-            options || (options = {});
         },
+
         getOptions: function (options) {
             options || (options = {});
-            var currentContext = this;
             var deferred = $.Deferred();
 
+            var error;
             var results = {
                 purposes: _purposes,
                 durations: _durations,
@@ -85,8 +85,12 @@ define(function (require) {
             };
 
             window.setTimeout(function () {
-                deferred.resolveWith(currentContext, [results]);
-            }, 20);
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
 
             return deferred.promise();
         }

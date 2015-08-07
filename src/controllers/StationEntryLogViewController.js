@@ -15,29 +15,22 @@ define(function (require) {
     var StationTypeEnum = require('enums/StationTypeEnum');
     var CheckInTypeEnum = require('enums/CheckInTypeEnum');
 
-    /**
-     *
-     * @param options
-     * @constructor
-     */
     var StationEntryLogViewController = function (options) {
         options || (options = {});
         this.initialize.apply(this, arguments);
     };
 
     _.extend(StationEntryLogViewController.prototype, Backbone.Events, {
-        /**
-         *
-         * @param options
-         */
+
         initialize: function (options) {
             console.trace('StationEntryLogViewController.initialize');
             options || (options = {});
             this.router = options.router;
             this.dispatcher = options.dispatcher;
+            this.geoLocationService = options.geoLocationService;
             this.persistenceContext = options.persistenceContext;
 
-            this.listenTo(this.dispatcher, EventNameEnum.goToAdHocStationWithId, this.goToAdHocStationWithId);
+            this.listenTo(this.dispatcher, EventNameEnum.goToAdHocStationDetailWithId, this.goToAdHocStationDetailWithId);
             this.listenTo(this.dispatcher, EventNameEnum.goToAdHocCheckIn, this.goToAdHocCheckIn);
             this.listenTo(this.dispatcher, EventNameEnum.goToCheckIn, this.goToCheckIn);
             this.listenTo(this.dispatcher, EventNameEnum.checkIn, this.checkIn);
@@ -46,270 +39,239 @@ define(function (require) {
             this.listenTo(this.dispatcher, EventNameEnum.goToCheckOut, this.goToCheckOut);
             this.listenTo(this.dispatcher, EventNameEnum.checkOut, this.checkOut);
         },
-        /**
-         *
-         * @returns {promise}
-         */
+
         goToAdHocCheckIn: function () {
-            var currentContext = this;
+            var self = this;
             var deferred = $.Deferred();
-
             var myPersonnelModel = new PersonnelModel();
-            var openStationEntryLogModel = new StationEntryLogModel();
-            var stationEntryLogModel = new StationEntryLogModel({checkInType: CheckInTypeEnum.adHoc});
+            var myOpenStationEntryLogModel = new StationEntryLogModel();
+            var stationEntryLogModel = new StationEntryLogModel({
+                checkInType: CheckInTypeEnum.adHoc
+            });
             var purposeCollection = new Backbone.Collection();
             var durationCollection = new Backbone.Collection();
             var areaCollection = new Backbone.Collection();
-            var adHocCheckInView = new AdHocCheckInModalView({
-                dispatcher: currentContext.dispatcher,
+            var adHocCheckInModalView = new AdHocCheckInModalView({
+                dispatcher: self.dispatcher,
                 myPersonnelModel: myPersonnelModel,
-                openStationEntryLogModel: openStationEntryLogModel,
+                myOpenStationEntryLogModel: myOpenStationEntryLogModel,
                 model: stationEntryLogModel,
                 purposeCollection: purposeCollection,
                 durationCollection: durationCollection,
                 areaCollection: areaCollection
             });
-            adHocCheckInView.render();
-            $('#ad-hoc-check-in-modal-view-container').append(adHocCheckInView.el);
-            adHocCheckInView.show();
 
-            $.when(currentContext.persistenceContext.getMyPersonnelAndOpenStationEntryLogs(myPersonnelModel, openStationEntryLogModel), currentContext.persistenceContext.getOptions(purposeCollection, durationCollection, areaCollection))
-                .done(function () {
-                    currentContext.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel);
-                    adHocCheckInView.trigger('loaded');
-                    deferred.resolve(adHocCheckInView);
+            self.router.showModal(adHocCheckInModalView);
+
+            $.when(self.persistenceContext.getMyPersonnel(), self.persistenceContext.getMyOpenStationEntryLog(), self.persistenceContext.getOptions())
+                .done(function (myPersonnelData, myOpenStationEntryLogData, stationData, optionsData) {
+                    myPersonnelModel.set(myPersonnelData);
+                    myOpenStationEntryLogModel.set(myOpenStationEntryLogData);
+                    self.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel, myOpenStationEntryLogModel);
+                    adHocCheckInModalView.trigger('loaded');
+                    deferred.resolve(adHocCheckInModalView);
                 })
                 .fail(function (error) {
-                    adHocCheckInView.trigger('error');
-                    deferred.reject(error);
+                    adHocCheckInModalView.trigger('error', error);
+                    deferred.rejectWith(self, [error]);
+                });
+
+
+            self.geoLocationService.getCurrentPosition()
+                .done(function (position) {
+                    adHocCheckInModalView.updateGpsLabel(position.coords.latitude.toFixed(6), position.coords.longitude.toFixed(6));
+                })
+                .fail(function (getCurrentPositionError) {
+                    adHocCheckInModalView.updateGpsLabel();
                 });
 
             return deferred.promise();
         },
 
-        /**
-         *
-         * @param stationId
-         * @returns {promise}
-         */
         goToCheckIn: function (stationId) {
-            var currentContext = this;
+            var self = this;
             var deferred = $.Deferred();
-
             var myPersonnelModel = new PersonnelModel();
-            var openStationEntryLogModel = new StationEntryLogModel();
-            var stationEntryLogModel = new StationEntryLogModel({checkInType: CheckInTypeEnum.station});
-
-            var idRegex = /^\d+$/;
-            var stationType = StationTypeEnum.td;
-            if (idRegex.test(stationId)) {
-                stationId = parseInt(stationId, 10);
-            } else {
-                stationType = StationTypeEnum.tc;
-            }
-            var stationModel = new StationModel({
-                stationId: stationId,
-                stationType: stationType
+            var myOpenStationEntryLogModel = new StationEntryLogModel();
+            var stationEntryLogModel = new StationEntryLogModel({
+                checkInType: CheckInTypeEnum.station
             });
-
+            var stationModel = new StationModel({
+                stationId: stationId
+            });
             var purposeCollection = new Backbone.Collection();
             var durationCollection = new Backbone.Collection();
-            var areaCollection = new Backbone.Collection();
-            var checkInView = new CheckInModalView({
-                dispatcher: currentContext.dispatcher,
+            var checkInModalView = new CheckInModalView({
+                dispatcher: self.dispatcher,
                 myPersonnelModel: myPersonnelModel,
-                openStationEntryLogModel: openStationEntryLogModel,
+                myOpenStationEntryLogModel: myOpenStationEntryLogModel,
                 model: stationEntryLogModel,
                 stationModel: stationModel,
                 purposeCollection: purposeCollection,
-                durationCollection: durationCollection,
-                areaCollection: areaCollection
+                durationCollection: durationCollection
             });
 
-            currentContext.router.swapContent(checkInView);
-            currentContext.router.navigate('station/' + stationModel.get('stationId') + '/checkIn');
+            self.router.showModal(checkInModalView);
 
-            $.when(currentContext.persistenceContext.getMyPersonnelAndOpenStationEntryLogs(myPersonnelModel, openStationEntryLogModel), currentContext.persistenceContext.getStationById(stationModel), currentContext.persistenceContext.getOptions(purposeCollection, durationCollection, areaCollection))
-                .done(function () {
-                    currentContext.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel);
-                    checkInView.trigger('loaded');
-                    deferred.resolve(checkInView);
+            $.when(self.persistenceContext.getMyPersonnel(), self.persistenceContext.getMyOpenStationEntryLog(), self.persistenceContext.getStationByStationId(stationId), self.persistenceContext.getOptions())
+                .done(function (myPersonnelData, myOpenStationEntryLogData, stationData, optionsData) {
+                    myPersonnelModel.set(myPersonnelData);
+                    myOpenStationEntryLogModel.set(myOpenStationEntryLogData);
+                    self.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel, myOpenStationEntryLogModel);
+                    stationModel.set(stationData);
+                    checkInModalView.trigger('loaded');
+                    deferred.resolve(checkInModalView);
                 })
                 .fail(function (error) {
-                    checkInView.trigger('error');
+                    checkInModalView.trigger('error', error);
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param stationEntryLogModel
-         * @returns {promise}
-         */
+
         checkIn: function (stationEntryLogModel) {
-            var currentContext = this;
+            var self = this;
             var deferred = $.Deferred();
-
-            currentContext.persistenceContext.checkIn(stationEntryLogModel)
-                .done(function () {
-                    currentContext.dispatcher.trigger(EventNameEnum.checkInSuccess, stationEntryLogModel);
+            self.persistenceContext.checkIn(stationEntryLogModel.attributes)
+                .done(function (stationEntryLog) {
+                    stationEntryLogModel.set(stationEntryLog);
+                    self.dispatcher.trigger(EventNameEnum.checkInSuccess, stationEntryLogModel);
                     deferred.resolve(stationEntryLogModel);
                 })
                 .fail(function (error) {
-                    currentContext.dispatcher.trigger(EventNameEnum.checkInError, error);
+                    self.dispatcher.trigger(EventNameEnum.checkInError, error);
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param currentStationEntryLogModel
-         * @returns {promise}
-         */
-        goToEditCheckIn: function (currentStationEntryLogModel) {
-            var currentContext = this;
+
+        goToEditCheckIn: function (stationEntryLogId, stationId) {
+            var self = this;
             var deferred = $.Deferred();
-
             var myPersonnelModel = new PersonnelModel();
-            var openStationEntryLogModel = new StationEntryLogModel();
-
-            var stationId = currentStationEntryLogModel.get('stationId');
-            var idRegex = /^\d+$/;
-            var stationType = StationTypeEnum.td;
-            if (idRegex.test(stationId)) {
-                stationId = parseInt(stationId, 10);
-            } else {
-                stationType = StationTypeEnum.tc;
-            }
-            var stationModel = new StationModel({
-                stationId: stationId,
-                stationType: stationType
+            var myOpenStationEntryLogModel = new StationEntryLogModel();
+            var stationEntryLogModel = new StationEntryLogModel({
+                stationEntryLogId: stationEntryLogId
             });
-
-            var stationEntryLogModel = new StationEntryLogModel();
-            var purposeCollection = new Backbone.Collection();
             var durationCollection = new Backbone.Collection();
-            var areaCollection = new Backbone.Collection();
-            var editCheckInView = new EditCheckInModalView({
-                dispatcher: currentContext.dispatcher,
+            var editCheckInModalView = new EditCheckInModalView({
+                dispatcher: self.dispatcher,
                 myPersonnelModel: myPersonnelModel,
-                openStationEntryLogModel: openStationEntryLogModel,
-                stationModel: stationModel,
-                purposeCollection: purposeCollection,
-                durationCollection: durationCollection,
-                areaCollection: areaCollection
+                myOpenStationEntryLogModel: myOpenStationEntryLogModel,
+                model: stationEntryLogModel,
+                durationCollection: durationCollection
             });
 
-            currentContext.router.swapContent(editCheckInView);
-            currentContext.router.navigate('stationEntryLog/' + currentStationEntryLogModel.get('stationEntryLogId'));
+            self.router.showModal(editCheckInModalView);
 
-            $.when(currentContext.persistenceContext.getMyPersonnelAndOpenStationEntryLogs(myPersonnelModel, openStationEntryLogModel), currentContext.persistenceContext.getStationEntryLogById(stationEntryLogModel), currentContext.persistenceContext.getStationById(stationModel), currentContext.persistenceContext.getOptions(purposeCollection, durationCollection, areaCollection))
-                .done(function () {
-                    currentContext.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel);
-                    editCheckInView.trigger('loaded');
-                    deferred.resolve(editCheckInView);
+            $.when(self.persistenceContext.getMyPersonnel(), self.persistenceContext.getMyOpenStationEntryLog(), self.persistenceContext.getStationEntryLogByStationEntryLogId(stationEntryLogId), self.persistenceContext.getOptions())
+                .done(function (myPersonnelData, myOpenStationEntryLogData, stationEntryLogData, optionsData) {
+                    myPersonnelModel.set(myPersonnelData);
+                    myOpenStationEntryLogModel.set(myOpenStationEntryLogData);
+                    self.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel, myOpenStationEntryLogModel);
+                    stationEntryLogModel.set(stationEntryLogData);
+                    var stationId = stationEntryLogModel.get('stationId');
+                    if (stationId) {
+                        self.persistenceContext.getStationByStationId(stationId)
+                            .done(function (station) {
+                                editCheckInModalView.trigger('loaded');
+                                deferred.resolve(editCheckInModalView);
+                            })
+                            .fail(function (getStationByStationIdError) {
+                                editCheckInModalView.trigger('error', getStationByStationIdError);
+                                deferred.reject(getStationByStationIdError);
+                            });
+                    } else {
+                        editCheckInModalView.trigger('loaded');
+                        deferred.resolve(editCheckInModalView);
+                    }
                 })
                 .fail(function (error) {
-                    editCheckInView.trigger('error');
+                    editCheckInModalView.trigger('error', error);
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param stationEntryLogModel
-         * @returns {promise}
-         */
+
         editCheckIn: function (stationEntryLogModel) {
-            var currentContext = this;
+            var self = this;
             var deferred = $.Deferred();
-
-            currentContext.persistenceContext.editCheckIn(stationEntryLogModel)
-                .done(function () {
-                    currentContext.dispatcher.trigger(EventNameEnum.editCheckInSuccess, stationEntryLogModel);
-                    deferred.resolve(stationEntryLogModel);
+            self.persistenceContext.editCheckIn(stationEntryLogModel.attributes)
+                .done(function (stationEntryLog) {
+                    stationEntryLogModel.set(stationEntryLog);
+                    self.dispatcher.trigger(EventNameEnum.editCheckInSuccess, stationEntryLogModel);
+                    deferred.resolve(stationEntryLog);
                 })
                 .fail(function (error) {
-                    currentContext.dispatcher.trigger(EventNameEnum.editCheckInError, error);
+                    self.dispatcher.trigger(EventNameEnum.editCheckInError, error);
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param currentStationEntryLogModel
-         * @returns {promise}
-         */
-        goToCheckOut: function (currentStationEntryLogModel) {
-            var currentContext = this;
-            var deferred = $.Deferred();
 
+        goToCheckOut: function (stationEntryLogId) {
+            var self = this;
+            var deferred = $.Deferred();
             var myPersonnelModel = new PersonnelModel();
-            var openStationEntryLogModel = new StationEntryLogModel();
-
-            var stationId = currentStationEntryLogModel.get('stationId');
-            var idRegex = /^\d+$/;
-            var stationType = StationTypeEnum.td;
-            if (idRegex.test(stationId)) {
-                stationId = parseInt(stationId, 10);
-            } else {
-                stationType = StationTypeEnum.tc;
-            }
-            var stationModel = new StationModel({
-                stationId: stationId,
-                stationType: stationType
+            var myOpenStationEntryLogModel = new StationEntryLogModel();
+            var stationEntryLogModel = new StationEntryLogModel({
+                stationEntryLogId: stationEntryLogId
             });
-
-            var stationEntryLogModel = new StationEntryLogModel();
-            var purposeCollection = new Backbone.Collection();
-            var durationCollection = new Backbone.Collection();
-            var areaCollection = new Backbone.Collection();
-            var checkOutView = new CheckOutModalView({
-                dispatcher: currentContext.dispatcher,
+            var checkOutModalView = new CheckOutModalView({
+                dispatcher: self.dispatcher,
                 myPersonnelModel: myPersonnelModel,
-                openStationEntryLogModel: openStationEntryLogModel,
-                stationModel: stationModel,
-                purposeCollection: purposeCollection,
-                durationCollection: durationCollection,
-                areaCollection: areaCollection
+                myOpenStationEntryLogModel: myOpenStationEntryLogModel,
+                model: stationEntryLogModel
             });
 
-            currentContext.router.swapContent(checkOutView);
-            currentContext.router.navigate('stationEntryLog/' + currentStationEntryLogModel.get('stationEntryLogId') + '/checkOut');
+            self.router.showModal(checkOutModalView);
 
-            $.when(currentContext.persistenceContext.getMyPersonnelAndOpenStationEntryLogs(myPersonnelModel, openStationEntryLogModel), currentContext.persistenceContext.getStationEntryLogById(stationEntryLogModel), currentContext.persistenceContext.getStationById(stationModel), currentContext.persistenceContext.getOptions(purposeCollection, durationCollection, areaCollection))
-                .done(function () {
-                    currentContext.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel);
-                    checkOutView.trigger('loaded');
-                    deferred.resolve(checkOutView);
+            $.when(self.persistenceContext.getMyPersonnel(), self.persistenceContext.getMyOpenStationEntryLog(), self.persistenceContext.getStationEntryLogByStationEntryLogId(stationEntryLogId))
+                .done(function (myPersonnelData, myOpenStationEntryLogData, stationEntryLogData) {
+                    myPersonnelModel.set(myPersonnelData);
+                    myOpenStationEntryLogModel.set(myOpenStationEntryLogData);
+                    self.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel, myOpenStationEntryLogModel);
+                    stationEntryLogModel.set(stationEntryLogData);
+                    var stationId = stationEntryLogModel.get('stationId');
+                    if (stationId) {
+                        self.persistenceContext.getStationByStationId(stationId)
+                            .done(function (station) {
+                                checkOutModalView.trigger('loaded');
+                                deferred.resolve(checkOutModalView);
+                            })
+                            .fail(function (getStationByStationIdError) {
+                                checkOutModalView.trigger('error', getStationByStationIdError);
+                                deferred.reject(getStationByStationIdError);
+                            });
+                    } else {
+                        checkOutModalView.trigger('loaded');
+                        deferred.resolve(checkOutModalView);
+                    }
                 })
                 .fail(function (error) {
-                    checkOutView.trigger('error');
+                    checkOutModalView.trigger('error', error);
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param stationEntryLogModel
-         * @returns {promise}
-         */
+
         checkOut: function (stationEntryLogModel) {
-            var currentContext = this;
+            var self = this;
             var deferred = $.Deferred();
 
-            currentContext.persistenceContext.checkOut(stationEntryLogModel)
-                .done(function () {
-                    currentContext.dispatcher.trigger(EventNameEnum.checkOutSuccess, stationEntryLogModel);
+            self.persistenceContext.checkOut(stationEntryLogModel.attributes)
+                .done(function (stationEntryLog) {
+                    stationEntryLogModel.set(stationEntryLog);
+                    self.dispatcher.trigger(EventNameEnum.checkOutSuccess, stationEntryLogModel);
                     deferred.resolve(stationEntryLogModel);
                 })
                 .fail(function (error) {
-                    currentContext.dispatcher.trigger(EventNameEnum.checkOutError, error);
+                    self.dispatcher.trigger(EventNameEnum.checkOutError, error);
                     deferred.reject(error);
                 });
 

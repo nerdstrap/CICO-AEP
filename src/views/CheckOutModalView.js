@@ -1,185 +1,158 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
     var _ = require('underscore');
     var Backbone = require('backbone');
     var BaseModalView = require('views/BaseModalView');
-    var config = require('config');
     var EventNameEnum = require('enums/EventNameEnum');
+    var CheckInTypeEnum = require('enums/CheckInTypeEnum');
     var validation = require('backbone-validation');
+    var utils = require('utils');
     var template = require('hbs!templates/CheckOutModalView');
 
-
     var CheckOutModalView = BaseModalView.extend({
-        initialize: function(options) {
-            console.debug('CheckOutView.initialize');
+
+        id: '#check-out-modal-view',
+
+        initialize: function (options) {
+            BaseModalView.prototype.initialize.apply(this, arguments);
             options || (options = {});
-            this.controller = options.controller;
-            this.checkOutModel = this.model;
-            this.stationWarningCollection = options.stationWarningCollection;
+            this.dispatcher = options.dispatcher || this;
 
-            this.listenToOnce(this.stationWarningCollection, 'reset', this.renderWarningCollectionView);
+            this.myPersonnelModel = options.myPersonnelModel;
+            this.myOpenStationEntryLogModel = options.myOpenStationEntryLogModel;
+            this.stationModel = options.stationModel;
+
+            this.$validating = this.$('.validating');
+
+            this.listenTo(this.model, 'validated', this.onValidated);
+            this.listenTo(this.dispatcher, EventNameEnum.checkOutSuccess, this.onCheckOutSuccess);
+            this.listenTo(this.dispatcher, EventNameEnum.checkOutError, this.onCheckOutError);
+            this.listenTo(this, 'loaded', this.onLoaded);
+            this.listenTo(this, 'error', this.onError);
         },
-        render: function() {
-            this.renderError = false;
 
-            var templateModel = {
-                "checkOutModel": this.model.attributes
-            };
-            this.$el.html(template(templateModel));
-
-            var currentContext = this;
-
-            this.showAdditionalInfo();
-
-            this.showLoadingEntryData(false);
-            this.showCheckOutDialog(true);
-
+        render: function () {
+            this.setElement(template(this.renderModel(this.model)));
+            this.bindValidation();
             return this;
         },
-        showError: function() {
-            this.controller.showErrorView("Error retrieving data for Check-In Screen. Please call the dispatch center to check in.");
-        },
-        showErrorMessage: function(errorMsg) {
-            this.controller.showErrorView(errorMsg);
-        },
-        beforeShow: function(errorMessage) {
-            if (!this.renderError) {
-                var currentContext = this;
-                currentContext.showLoading(true);
-                return true;
-            } else {
-                return false;
-            }
-        },
+
         events: {
-            "click #checkOutBtn": "checkOut",
-            "click #cancel-checkOutBtn": "cancelCheckOut"
+            'input [data-input="text"]': 'formTextInput',
+            'click [data-button="clear"]': 'clearFormInput',
+            'click #submit-check-out-button': 'submitCheckOut',
+            'click #cancel-check-out-button': 'cancelCheckOut',
+            'click .ok-modal-button': 'hide'
         },
-        cancelCheckOut: function(event) {
+
+        bindValidation: function () {
+            validation.bind(this, {
+                selector: 'name'
+            });
+            return this;
+        },
+
+        validatePreconditions: function () {
+            var isValid = true;
+            if (this.model.get('checkInType') === CheckInTypeEnum.station && this.stationModel.get('hasHazard') === true) {
+                isValid = false;
+                this.trigger('error', utils.getResource('hazardErrorMessage'));
+            }
+            if (this.myOpenStationEntryLogModel && this.myOpenStationEntryLogModel.has('outTime')) {
+                isValid = false;
+                this.trigger('error', utils.getResource('openCheckInErrorMessage'));
+            }
+            if (this.model.has('outTime') === true) {
+                isValid = false;
+                this.trigger('error', utils.getResource('alreadyCheckedOutErrorMessage'));
+            }
+            return isValid;
+        },
+
+        updateViewFromModel: function () {
+            this.updateAdditionalInfoInput();
+            return this;
+        },
+
+        updateAdditionalInfoInput: function () {
+            if (this.model.has('additionalInfo')) {
+                var additionalInfo = this.model.get('additionalInfo');
+                this.$('#additional-info-input').val(additionalInfo);
+            }
+            return this;
+        },
+
+        submitCheckOut: function (event) {
             if (event) {
                 event.preventDefault();
             }
-
-            this.hide();
+            this.showProgress(utils.getResource('checkOutProgressMessageText'));
+            this.updateModelFromView();
+            this.model.validate();
+            return this;
         },
-        checkOut: function(event) {
-            if (event) {
-                event.preventDefault();
-            }
 
-            if (this.stationWarningCollection) {
-                if (this.allStationWarningsConfirmed()) {
-                    var stationWarningIds;
-                    var lastConfirmedBy;
-                    var currentStationEntry;
-                    this.model.set('stationWarningIds', this.stationWarningCollection.map(function(stationWarning) {
-                        return stationWarning.get('stationWarningId');
-                    }));
-                    this.model.set('lastConfirmedBy', this.model.get('userName'));
-                    var additionalInfo = this.$('#additionalInfo').val();
-                    if (typeof (additionalInfo) !== "undefined") {
-                        additionalInfo = additionalInfo.trim();
-                    }
-                    currentStationEntry = this.model.getCurrentStationEntry();
-                    stationWarningIds = this.model.get('stationWarningIds');
-                    lastConfirmedBy = currentStationEntry.get('userName');
-                    this.controller.checkOutOfStation(currentStationEntry, additionalInfo, stationWarningIds, lastConfirmedBy);
-                    this.hide();
-                } else {
-                    var message = "One or more station warnings have not been confirmed.";
-                    this.showErrorMessage(message);
-                }
-            } else {
+        updateModelFromView: function () {
+            var attributes = {};
+            attributes.additionalInfo = this.$('#additional-info-input').val();
+            this.model.set(attributes);
+            return this;
+        },
+
+        onValidated: function (isValid, model, errors) {
+            this.$validating.removeClass('invalid');
+            if (isValid) {
                 this.checkOut();
-            }
-        },
-        showLoading: function(show) {
-            if (!show) {
-                this.$('#loading-dialog').hide();
-            }
-            else {
-                this.$('#loading-dialog').show();
-            }
-            this.tryRecent();
-        },
-        showLoadingEntryData: function(show) {
-            if (!show) {
-                this.canHideLoadingEntryData = true;
-                this.tryHideLoading();
-            }
-            else {
-                this.canHideLoadingEntryData = false;
-                this.tryRecent();
-            }
-        },
-        tryHideLoading: function() {
-            if (this.canHideLoadingEntryData) {
-                var currentContext = this;
-                setTimeout(function() {
-                    currentContext.showLoading(false);
-                    currentContext.showCheckOutDialogs(true);
-                }, 500);
-            }
-        },
-        showCheckOutDialogs: function(show) {
-            if (!show) {
-                this.$('#check-out-dialogs').hide();
-            }
-            else {
-                this.$('#check-out-dialogs').show();
-                this.tryRecent();
-            }
-        },
-        showCheckOutDialog: function(show) {
-            if (!show) {
-                this.$('#check-out-dialog').hide();
-            }
-            else {
-                this.$('#check-out-dialog').show();
-                this.tryRecent();
-            }
-        },
-        tryRecent: function() {
-            if (this.el.className === 'modal') {
-                this.recenter();
-            }
-        },
-        showAdditionalInfo: function() {
-            var additionalInfo = this.model.stationEntry.get('additionalInfo');
-            if (typeof (additionalInfo) !== "undefined") {
-                this.$('#additionalInfo').html(additionalInfo);
-            }
-        },
-        renderWarningCollectionView: function() {
-            console.debug('CheckOutView.renderWarningCollectionView');
-            var currentContext = this;
-            if (currentContext.stationWarningCollection.length > 0) {
-                if (currentContext.model.get('stationEntry').get('checkInType') === 1) {
-                    var confirmWarningCollectionView = new ConfirmWarningCollectionView({
-                        collection: currentContext.stationWarningCollection,
-                        el: $('#stationWarnings', currentContext.$el),
-                        appDataModel: currentContext.appDataModel,
-                        dispatcher: this.dispatcher
-                    });
-
-                    confirmWarningCollectionView.render();
-                    confirmWarningCollectionView.addAll();
-                    currentContext.$('#station-warning-dialog').removeClass('hidden');
+            } else {
+                for (var error in errors) {
+                    this.$('[name="' + error + '"]').parent().addClass('invalid');
                 }
+                this.showLoading();
+            }
+            return this;
+        },
+
+        checkOut: function () {
+            this.dispatcher.trigger(EventNameEnum.checkOut, this.model);
+            return this;
+        },
+
+        cancelCheckOut: function (event) {
+            if (event) {
+                event.preventDefault();
+            }
+            this.hide();
+            return this;
+        },
+
+        onCheckOutSuccess: function () {
+            var stationName = this.model.get('stationName');
+            var formattedOutTime = utils.formatDate(this.model.get('outTime'));
+            var checkOutSuccessMessageText = utils.formatString(utils.getResource('checkOutSuccessMessageTextFormatString'), [stationName, formattedOutTime]);
+            this.hideProgress();
+            this.showInfo(checkOutSuccessMessageText);
+            this.dispatcher.trigger(EventNameEnum.goToStationSearch);
+        },
+
+        onCheckOutError: function (error) {
+            this.showError(error);
+        },
+
+        onLoaded: function () {
+            if (this.validatePreconditions()) {
+                this.updateViewFromModel();
+                this.showLoading();
             }
         },
-        allStationWarningsConfirmed: function() {
-            var currentContext = this;
-            if (currentContext.stationWarningCollection) {
-                return _.every(currentContext.stationWarningCollection.models, function(stationWarningModel) {
-                    return stationWarningModel.get('confirmed') === true;
-                }, currentContext);
-            }
-            return true;
+
+        onError: function (error) {
+            this.showError(error);
         }
+
     });
-    
+
     return CheckOutModalView;
+
 });

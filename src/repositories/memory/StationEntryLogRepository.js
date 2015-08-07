@@ -7,11 +7,12 @@ define(function (require) {
     var utils = require('utils');
     var config = require('config');
 
-    var _stationStationEntryLogs = [
+    var _stationEntryLogs = [
         {
-            "stationEntryLogId": "2",
-            "stationId": "1",
-            "stationName": "Station 1",
+            "stationEntryLogId": "666",
+            "checkInType": "2",
+            "adHocDescription": "ad-hoc check-in 1",
+            "stationType": "2",
             "personnelId": "s251201",
             "userName": "Baltic, Michael",
             "firstName": "Michael",
@@ -21,6 +22,32 @@ define(function (require) {
             "purpose": "Site Maintenance",
             "additionalInfo": "Testing",
             "inTime": "1418828925433",
+            "contactNumber": "6145622909",
+            "duration": "180",
+            "latitude": "39.96500000",
+            "longitude": "-83.00555555",
+            "regionName": "Ohio",
+            "areaName": "Groveport",
+            "hasGroupCheckIn": "False",
+            "email": "mebaltic@aep.com",
+            "dispatchCenterId": "1"
+        },
+        {
+            "stationEntryLogId": "2",
+            "checkInType": "1",
+            "stationId": "DEVIL",
+            "stationName": "Devil Station",
+            "stationType": "1",
+            "personnelId": "s251201",
+            "userName": "Baltic, Michael",
+            "firstName": "Michael",
+            "lastName": "Baltic",
+            "middleName": "E",
+            "fullName": "Michael E Baltic",
+            "purpose": "Site Maintenance",
+            "additionalInfo": "Testing",
+            "inTime": "1418828925433",
+            "outTime": "1418828962736",
             "contactNumber": "9-1-6145622909",
             "duration": "180",
             "latitude": "39.96500000",
@@ -32,8 +59,10 @@ define(function (require) {
         },
         {
             "stationEntryLogId": "3",
-            "stationId": "666",
-            "stationName": "Station One",
+            "checkInType": "1",
+            "stationId": "DEVIL",
+            "stationName": "Devil Station",
+            "stationType": "1",
             "personnelId": "s251201",
             "userName": "Baltic, Michael",
             "firstName": "Michael",
@@ -55,8 +84,10 @@ define(function (require) {
         },
         {
             "stationEntryLogId": "4",
-            "stationId": "666",
-            "stationName": "Station 1",
+            "checkInType": "1",
+            "stationId": "DEVIL",
+            "stationName": "Devil Station",
+            "stationType": "1",
             "personnelId": "s251201",
             "userName": "Baltic, Michael",
             "firstName": "Michael",
@@ -78,217 +109,323 @@ define(function (require) {
         }
     ];
 
-    var _getById = function (stationStationEntryLogId) {
-        return _.where(_stationStationEntryLogs, {stationStationEntryLogId: stationStationEntryLogId});
-    };
-
-    var _getByStationId = function (stationId) {
-        return _.where(_stationStationEntryLogs, {stationId: stationId});
-    };
-
-    var _getOpenByStationId = function (stationId) {
-        var filteredStationEntryLogs = _.filter(_stationStationEntryLogs, function (stationStationEntryLog) {
-            return stationStationEntryLog.stationId === stationId && stationStationEntryLog.hasOwnProperty('outTime') === false;
+    var _clone = function (collection) {
+        var clonedCollection = [];
+        _.each(collection, function (item) {
+            clonedCollection.push(_.clone(item));
         });
-        return filteredStationEntryLogs;
+        return clonedCollection;
     };
 
-    var _getRecentByStationId = function (stationId) {
-        var filteredStationEntryLogs = _.filter(_stationStationEntryLogs, function (stationStationEntryLog) {
-            return stationStationEntryLog.stationId === stationId && stationStationEntryLog.hasOwnProperty('outTime') === true;
-        });
-        return filteredStationEntryLogs;
-    };
-
-    var _getByPersonnelId = function (personnelId) {
-        return _.where(_stationStationEntryLogs, {personnelId: personnelId});
-    };
-
-    var _getOpenByPersonnelId = function (personnelId) {
-        var filteredStationEntryLogs = _.filter(_stationStationEntryLogs, function (stationStationEntryLog) {
-            return stationStationEntryLog.personnelId === personnelId && stationStationEntryLog.hasOwnProperty('outTime') === false;
-        });
-        return filteredStationEntryLogs;
-    };
-
-    var _getRecentByPersonnelId = function (personnelId) {
-        var filteredStationEntryLogs = _.filter(_stationStationEntryLogs, function (stationStationEntryLog) {
-            return stationStationEntryLog.personnelId === personnelId && stationStationEntryLog.hasOwnProperty('outTime') === true;
-        });
-        return filteredStationEntryLogs;
-    };
-
-    var _getByStatus = function (stationStationEntryLogs, status) {
-        return _.where(stationStationEntryLogs, function (stationStationEntryLog) {
-            return stationStationEntryLog.hasOwnProperty('outTime') === status;
-        });
-    };
-
-    var _postCheckIn = function (stationStationEntryLog) {
-        stationStationEntryLog.stationStationEntryLogId = utils.getNewGuid();
-        stationStationEntryLog.inTime = new Date().getTime();
-        _stationStationEntryLogs.push(stationStationEntryLog);
-        return stationStationEntryLog;
-    };
-
-    var _postEditCheckIn = function (stationStationEntryLogAttributes) {
-        var match = _.find(_stationStationEntryLogs, function (stationStationEntryLog) {
-            return stationStationEntryLog.stationStationEntryLogId === stationStationEntryLogAttributes.stationStationEntryLogId;
-        });
-
-        if (match) {
-            match.duration = stationStationEntryLogAttributes.duration;
-            match.additionalInfo = stationStationEntryLogAttributes.additionalInfo;
+    var _toString = function (attributes) {
+        var stringAttributes = {};
+        for (var a in attributes) {
+            if (attributes.hasOwnProperty(a)) {
+                var attribute = attributes[a];
+                if (attribute) {
+                    if (a === "expectedOutTime") {
+                        stringAttributes[a] = attribute.getMilliseconds().toString();
+                    } else {
+                        stringAttributes[a] = attribute.toString();
+                    }
+                }
+            }
         }
-
-        return match;
+        return stringAttributes;
     };
 
-    var _postCheckOut = function (stationStationEntryLogAttributes) {
-        var match = _.find(_stationStationEntryLogs, {stationStationEntryLogId: stationStationEntryLogAttributes.stationStationEntryLogId});
-
-        if (match) {
-            match.outTime = new Date().getTime();
-        }
-
-        return match;
+    var _getStationEntryLogByStationEntryLogId = function (stationEntryLogId) {
+        return _clone(_.where(_stationEntryLogs, {stationEntryLogId: stationEntryLogId}));
     };
 
-    var _getByCoords = function (coords, distanceThreshold, searchResultsThreshold) {
-        utils.computeDistances(coords, _stationStationEntryLogs);
-        var nearbyStationEntryLogs = _.filter(_stationStationEntryLogs, function (stationStationEntryLog) {
-            return stationStationEntryLog.distance <= distanceThreshold
+    var _getMyOpenStationEntryLog = function (personnelId) {
+        var filteredStationEntryLogs = _.filter(_stationEntryLogs, function (stationEntryLog) {
+            return stationEntryLog.personnelId === personnelId && stationEntryLog.hasOwnProperty('outTime') === false;
+        });
+        return _clone(filteredStationEntryLogs);
+    };
+
+    var _getRecentStationEntryLogsByStationId = function (stationId) {
+        var filteredStationEntryLogs = _.filter(_stationEntryLogs, function (stationEntryLog) {
+            return stationEntryLog.stationId === stationId && stationEntryLog.hasOwnProperty('outTime') === true;
+        });
+        return _clone(filteredStationEntryLogs);
+    };
+
+    var _getRecentStationEntryLogsByPersonnelId = function (personnelId) {
+        var filteredStationEntryLogs = _.filter(_stationEntryLogs, function (stationEntryLog) {
+            return stationEntryLog.personnelId === personnelId && stationEntryLog.hasOwnProperty('outTime') === true;
+        });
+        return _clone(filteredStationEntryLogs);
+    };
+
+    var _getRecentStationEntryLogsByUserName = function (userName) {
+        var filteredStationEntryLogs = _.filter(_stationEntryLogs, function (stationEntryLog) {
+            return stationEntryLog.userName === userName && stationEntryLog.hasOwnProperty('outTime') === true;
+        });
+        return _clone(filteredStationEntryLogs);
+    };
+
+    var _getNearbyStationEntryLogs = function (latitude, longitude, distanceThreshold, searchResultsThreshold) {
+        var coords = {
+            latitude: latitude,
+            longitude: longitude
+        };
+        utils.computeDistances(coords, _stationEntryLogs);
+        var nearbyStationEntryLogs = _.filter(_stationEntryLogs, function (stationEntryLog) {
+            return stationEntryLog.distance <= distanceThreshold
         });
         if (nearbyStationEntryLogs.length > searchResultsThreshold) {
             nearbyStationEntryLogs = nearbyStationEntryLogs.slice(0, searchResultsThreshold);
         }
-        var sortedNearbyStationEntryLogs = _.sortBy(nearbyStationEntryLogs, function (nearbyStationEntryLog) {
+        return _.sortBy(nearbyStationEntryLogs, function (nearbyStationEntryLog) {
             return parseFloat(nearbyStationEntryLog.distance);
         });
+    };
 
-        return sortedNearbyStationEntryLogs;
+    var _checkIn = function (stationEntryLog) {
+        stationEntryLog.stationEntryLogId = utils.getNewGuid();
+        stationEntryLog.inTime = new Date().getTime().toString;
+        var stationEntryLogData = _.extend({}, stationEntryLog);
+        _stationEntryLogs.push(stationEntryLogData);
+        return stationEntryLog;
+    };
+
+    var _editCheckIn = function (stationEntryLogAttributes) {
+        var match = _.find(_stationEntryLogs, function (stationEntryLog) {
+            return stationEntryLog.stationEntryLogId === stationEntryLogAttributes.stationEntryLogId.toString();
+        });
+
+        if (match) {
+            match.duration = stationEntryLogAttributes.duration.toString();
+            match.additionalInfo = stationEntryLogAttributes.additionalInfo;
+        }
+
+        return _.extend({}, match);
+    };
+
+    var _checkOut = function (stationEntryLogAttributes) {
+        var match = _.find(_stationEntryLogs, function (stationEntryLog) {
+            return stationEntryLog.stationEntryLogId === stationEntryLogAttributes.stationEntryLogId.toString();
+        });
+
+        if (match) {
+            match.additionalInfo = stationEntryLogAttributes.additionalInfo;
+            match.outTime = new Date().getTime().toString();
+        }
+
+        return _.extend({}, match);
     };
 
     var StationEntryLogRepository = function (options) {
-        options || (options = {});
         this.initialize.apply(this, arguments);
     };
 
     _.extend(StationEntryLogRepository.prototype, {
+
         initialize: function (options) {
-            options || (options = {});
         },
-        getStationEntryLogs: function (options) {
+
+        getStationEntryLogByStationEntryLogId: function (options) {
             options || (options = {});
-            var currentContext = this;
             var deferred = $.Deferred();
 
-            var stationStationEntryLogs;
-            if (options.stationStationEntryLogId) {
-                stationStationEntryLogs = _getById(options.stationStationEntryLogId);
-            } else if (options.stationId) {
-                if (options.open) {
-                    stationStationEntryLogs = _getOpenByStationId(options.stationId.toString());
-                } else if (options.recent) {
-                    stationStationEntryLogs = _getRecentByStationId(options.stationId.toString());
-                } else {
-                    stationStationEntryLogs = _getByStationId(options.stationId.toString());
-                }
-            } else if (options.personnelId) {
-                if (options.open) {
-                    stationStationEntryLogs = _getOpenByPersonnelId(options.personnelId);
-                } else if (options.recent) {
-                    stationStationEntryLogs = _getRecentByPersonnelId(options.personnelId);
-                } else {
-                    stationStationEntryLogs = _getByPersonnelId(options.personnelId);
-                }
-            } else if (options.coords) {
-                stationStationEntryLogs = _getByCoords(options.coords, config.app.distanceThreshold, config.app.searchResultsThreshold);
-            } else if (options.open) {
-                var personnelId = config.myPersonnel.personnelId;
-                stationStationEntryLogs = _getOpenByPersonnelId(personnelId);
-            } else {
-                stationStationEntryLogs = _stationStationEntryLogs;
-            }
-
-            var results = {
-                stationStationEntryLogs: stationStationEntryLogs
-            };
-
-            window.setTimeout(function () {
-                deferred.resolveWith(currentContext, [results]);
-            }, 20);
-
-            return deferred.promise();
-        },
-        getOpenStationEntryLogs: function(){
-            var currentContext = this;
-            var deferred = $.Deferred();
-
-            var myPersonnelId = config.myPersonnelId();
-            var stationEntryLogs = _getOpenByPersonnelId(myPersonnelId);
+            var error;
+            var stationEntryLogs = _getStationEntryLogByStationEntryLogId(options.stationEntryLogId.toString());
 
             var results = {
                 stationEntryLogs: stationEntryLogs
             };
 
             window.setTimeout(function () {
-                deferred.resolveWith(currentContext, [results]);
-            }, 20);
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
 
             return deferred.promise();
         },
-        postCheckIn: function (options) {
-            options || (options = {});
+
+        getMyOpenStationEntryLog: function () {
             var currentContext = this;
             var deferred = $.Deferred();
 
-            var stationStationEntryLog = _postCheckIn(options);
+            var myPersonnelId = config.myPersonnelId();
+            var stationEntryLogs = _getMyOpenStationEntryLog(myPersonnelId);
 
+            var error;
             var results = {
-                stationStationEntryLog: stationStationEntryLog
+                stationEntryLogs: stationEntryLogs
             };
 
             window.setTimeout(function () {
-                deferred.resolveWith(currentContext, [results]);
-            }, 3000);
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
 
             return deferred.promise();
         },
-        postEditCheckIn: function (options) {
+
+        getRecentStationEntryLogsByStationId: function (options) {
             options || (options = {});
-            var currentContext = this;
             var deferred = $.Deferred();
 
-            var stationStationEntryLog = _postEditCheckIn(options);
+            var error;
+            var stationEntryLogs = _getRecentStationEntryLogsByStationId(options.stationEntryLogId.toString());
 
             var results = {
-                stationStationEntryLog: stationStationEntryLog
+                stationEntryLogs: stationEntryLogs
             };
 
             window.setTimeout(function () {
-                deferred.resolveWith(currentContext, [results]);
-            }, 3000);
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
 
             return deferred.promise();
         },
-        postCheckOut: function (options) {
+
+        getRecentStationEntryLogsByPersonnelId: function (options) {
             options || (options = {});
-            var currentContext = this;
             var deferred = $.Deferred();
 
-            var stationStationEntryLog = _postCheckOut(options);
+            var error;
+            var stationEntryLogs = _getRecentStationEntryLogsByPersonnelId(options.stationEntryLogId.toString());
 
             var results = {
-                stationStationEntryLog: stationStationEntryLog
+                stationEntryLogs: stationEntryLogs
             };
 
             window.setTimeout(function () {
-                deferred.resolveWith(currentContext, [results]);
-            }, 3000);
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
+
+            return deferred.promise();
+        },
+
+        getRecentStationEntryLogsByUserName: function (options) {
+            options || (options = {});
+            var deferred = $.Deferred();
+
+            var error;
+            var stationEntryLogs = _getRecentStationEntryLogsByUserName(options.stationEntryLogId.toString());
+
+            var results = {
+                stationEntryLogs: stationEntryLogs
+            };
+
+            window.setTimeout(function () {
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
+
+            return deferred.promise();
+        },
+
+        getNearbyStationEntryLogs: function (options) {
+            options || (options = {});
+            var deferred = $.Deferred();
+
+            var error;
+            var stationEntryLogs = _getNearbyStationEntryLogs(options.stationEntryLogId.toString());
+
+            var results = {
+                stationEntryLogs: stationEntryLogs
+            };
+
+            window.setTimeout(function () {
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
+
+            return deferred.promise();
+
+        },
+
+        checkIn: function (options) {
+            options || (options = {});
+            var deferred = $.Deferred();
+
+            var stationEntryLog = _checkIn(options);
+
+            var error;
+            var results = {
+                stationEntryLog: stationEntryLog
+            };
+
+            window.setTimeout(function () {
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
+
+            return deferred.promise();
+        },
+
+        editCheckIn: function (options) {
+            options || (options = {});
+            var deferred = $.Deferred();
+
+            var error;
+            var stationEntryLog = _editCheckIn(options);
+
+            var results = {
+                stationEntryLog: stationEntryLog
+            };
+
+            window.setTimeout(function () {
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
+
+            return deferred.promise();
+        },
+
+        checkOut: function (options) {
+            options || (options = {});
+            var deferred = $.Deferred();
+
+            var error;
+            var stationEntryLog = _checkOut(options);
+
+            var results = {
+                stationEntryLog: stationEntryLog
+            };
+
+            window.setTimeout(function () {
+                if (error) {
+                    deferred.reject(error);
+                } else {
+                    deferred.resolve(results);
+                }
+            }, 5);
 
             return deferred.promise();
         }
+
     });
 
     return StationEntryLogRepository;

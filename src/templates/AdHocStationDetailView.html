@@ -1,0 +1,26 @@
+<div class="ad-hoc-station-detail-view">
+    <div class="card-wrap">
+        <div class="card {{cid}}-progress">
+            <span class="loading-message">{{resource "adHocStationDetailLoadingMessageText"}}</span>
+            <img class="loading-image" src="{{resource 'progressImageSrc'}}" alt="{{resource 'progressImageAlt'}}"/>
+        </div>
+        <div class="card hidden {{cid}}-error">
+            <span class="error-message">{{resource "adHocStationDetailErrorMessageText"}}</span>
+        </div>
+        <div class="card hidden {{cid}}-loading">
+
+            <h1 id="ad-hoc-description-header"></h1>
+
+            <a id="go-to-edit-check-in-button" class="button radius" href="#" tabindex="0">{{resource "editCheckInButtonText"}}</a>
+
+            <div id="expected-check-out-container">
+                <span id="expected-check-out-label"></span>
+            </div>
+            <a id="go-to-check-out-button" class="button radius warning" href="#" tabindex="0">{{resource "checkOutButtonText"}}</a>
+
+            <div id="network-operations-center-container">
+                <span>{{resource "networkOperationsCenterHeaderText"}}</span><span class="network-operations-center-name-label"></span><i id="network-operations-center-check-in-icon" class="fa {{resource 'checkIcon'}}"></i>
+            </div>
+        </div>
+    </div>
+</div>

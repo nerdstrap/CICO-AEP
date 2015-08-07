@@ -11,6 +11,11 @@ define(function(require) {
     };
 
     _.extend(CompositeView.prototype, Backbone.View.prototype, {
+
+        initialize: function () {
+            Backbone.View.prototype.initialize.apply(this, arguments);
+        },
+
         leave: function () {
             this.trigger('leave');
             this.unbind();
@@ -19,38 +24,47 @@ define(function(require) {
             this._leaveChildren();
             this._removeFromParent();
         },
+
         renderChild: function (view) {
             view.parent = this;
             view.render();
             this.children.push(view);
         },
+
         renderChildInto: function (view, container) {
             this.renderChild(view);
             this.$(container).html(view.el);
         },
+
         replaceWithChild: function (view, container) {
             this.renderChild(view);
             this.$(container).replaceWith(view.el);
         },
+
         appendChild: function (view) {
             this.renderChild(view);
             this.$el.append(view.el);
         },
+
         appendChildTo: function (view, container) {
             this.renderChild(view);
             this.$(container).append(view.el);
         },
+
         prependChild: function (view) {
             this.renderChild(view);
             this.$el.prepend(view.el);
         },
+
         prependChildTo: function (view, container) {
             this.renderChild(view);
             this.$(container).prepend(view.el);
         },
+
         swapped: function () {
             this.trigger('swapped');
         },
+
         _leaveChildren: function () {
             this.children.chain().clone().each(function (view) {
                 if (view.leave) {
@@ -58,11 +72,13 @@ define(function(require) {
                 }
             });
         },
+
         _removeFromParent: function () {
             if (this.parent) {
                 this.parent._removeChild(this);
             }
         },
+
         _removeChild: function (view) {
             var index = this.children.indexOf(view);
             this.children.splice(index, 1);

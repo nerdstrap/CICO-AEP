@@ -1,4 +1,4 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
@@ -7,162 +7,137 @@ define(function(require) {
     var BaseView = require('views/BaseView');
     var EventNameEnum = require('enums/EventNameEnum');
     var utils = require('utils');
-    var template = require('hbs!templates/StationTileView');
+    var template = require('hbs!templates/StationEntryLogTileView');
 
-    var StationTileView = BaseView.extend({
-        /**
-         *
-         * @param options
-         */
-        initialize: function(options) {
+    var StationEntryLogTileView = BaseView.extend({
+
+        initialize: function (options) {
             options || (options = {});
             this.dispatcher = options.dispatcher || this;
+
+            this.showPersonnel = options.showPersonnel;
+            this.showStation = options.showStation;
 
             this.listenTo(this, 'loaded', this.onLoaded);
             this.listenTo(this, 'leave', this.onLeave);
         },
-        /**
-         *
-         * @returns {StationTileView}
-         */
-        render: function() {
-            var currentContext = this;
-            var renderModel = _.extend({}, currentContext.model.attributes);
-            currentContext.setElement(template(renderModel));
-            currentContext.updateViewFromModel();
+
+        render: function () {
+            this.setElement(template(this.renderModel(this.model)));
+            this.updateViewFromModel();
             return this;
         },
-        
-        /**
-         *
-         */
+
         events: {
-            'click .go-to-directions-button': 'goToDirectionsWithLatLng',
-            'click .go-to-station-button': 'goToStationWithId'
+            'click .go-to-personnel-button': 'goToPersonnelDetailWithId',
+            'click .go-to-station-button': 'goToStationDetailWithId'
         },
-        
-        /**
-         *
-         * @returns {StationTileView}
-         */
-        updateViewFromModel: function() {
-            var currentContext = this;
-            currentContext.updateIcons();
-            currentContext.updateStationNameLabel();
-            currentContext.updateDistanceLabel();
+
+        updateViewFromModel: function () {
+            this.updateIcons();
+            this.updateGoToPersonnelButton();
+            this.updateGoToStationButton();
+            this.updatePurposeLabel();
+            this.updateInTimeLabel();
+            this.updateOutTimeLabel();
+            this.updateAdditionalInfoLabel();
             return this;
         },
-        
-        /**
-         *
-         * @returns {StationTileView}
-         */
-        updateIcons: function() {
-            var currentContext = this;
 
-            if (currentContext.model.has('hasHazard') && currentContext.model.get('hasHazard') === true) {
-                currentContext.$('.hazard-icon').removeClass('hidden');
-            } else {
-                currentContext.$('.hazard-icon').addClass('hidden');
-            }
-
-            if (currentContext.model.has('hasAbnormalConditions') && currentContext.model.get('hasAbnormalConditions') === true) {
-                currentContext.$('.abnormal-condition-icon').removeClass('hidden');
-            } else {
-                currentContext.$('.abnormal-condition-icon').addClass('hidden');
-            }
-
-            if (currentContext.model.has('hasWarnings') && currentContext.model.get('hasWarnings') === true) {
-                currentContext.$('.warning-icon').removeClass('hidden');
-            } else {
-                currentContext.$('.warning-icon').addClass('hidden');
-            }
-
-            if (currentContext.model.has('hasOpenCheckIns') && currentContext.model.get('hasOpenCheckIns') === true) {
-                currentContext.$('.open-check-in-icon').removeClass('hidden');
-            } else {
-                currentContext.$('.open-check-in-icon').addClass('hidden');
-            }
-
+        updateIcons: function () {
+            var withCrewState = !(this.model.has('withCrew') && this.model.get('withCrew') === true);
+            this.$('.with-crew-icon').toggleClass('hidden', withCrewState);
             return this;
         },
-        
-        /**
-         *
-         * @returns {StationTileView}
-         */
-        updateStationNameLabel: function() {
-            var currentContext = this;
-            if (currentContext.model.has('stationName')) {
-                var stationName = currentContext.model.get('stationName');
-                currentContext.$('.station-name-label').html(stationName);
+
+        updateGoToPersonnelButton: function () {
+            this.$('.go-to-personnel-button').toggleClass('hidden', !this.showPersonnel);
+            if (this.model.has('userName')) {
+                var userName = this.model.get('userName');
+                this.$('.go-to-personnel-button').text(userName);
             }
             return this;
         },
-        
-        /**
-         *
-         * @returns {StationTileView}
-         */
-        updateDistanceLabel: function() {
-            var currentContext = this;
-            var formattedDistance;
-            if (currentContext.model.has('distance') && currentContext.model.has('latitude') && currentContext.model.has('longitude')) {
-                currentContext.hasCoordinates = true;
-                var distance = currentContext.model.get('distance').toFixed(2);
-                formattedDistance = utils.formatString(utils.getResource('distanceFormatString'), [distance]);
+
+        updateGoToStationButton: function () {
+            this.$('.go-to-station-button').toggleClass('hidden', !this.showStation);
+            if (this.model.has('stationName')) {
+                var stationName = this.model.get('stationName');
+                this.$('.go-to-station-button').text(stationName);
             } else {
-                formattedDistance = utils.getResource('coordinatesUnavailableErrorMessage');
+                var adHocDescription = this.model.get('adHocDescription');
+                this.$('.go-to-station-button').text(adHocDescription);
             }
-            currentContext.$('.distance-label').html(formattedDistance);
             return this;
         },
-        
-        /**
-         *
-         * @param event
-         * @returns {StationTileView}
-         */
-        goToDirectionsWithLatLng: function(event) {
+
+        updatePurposeLabel: function () {
+            var currentContext = this;
+            if (this.model.has('purpose')) {
+                var purpose = this.model.get('purpose');
+                this.$('.purpose-label').text(purpose);
+            }
+            return this;
+        },
+
+        updateInTimeLabel: function () {
+            var currentContext = this;
+            if (this.model.has('inTime')) {
+                var inTime = this.model.get('inTime');
+                var formattedInTime = utils.formatDate(inTime);
+                this.$('.in-time-label').text(formattedInTime);
+            }
+
+            return this;
+        },
+
+        updateOutTimeLabel: function () {
+            var currentContext = this;
+            if (this.model.has('outTime')) {
+                var outTime = this.model.get('outTime');
+                var formattedOutTime = utils.formatDate(outTime);
+                this.$('.out-time-label').text(formattedOutTime);
+                this.$('.in-time-out-time-separator').toggleClass('hidden', false);
+            }
+
+            return this;
+        },
+
+        updateAdditionalInfoLabel: function () {
+            var currentContext = this;
+            if (this.model.has('additionalInfo')) {
+                var additionalInfo = this.model.get('additionalInfo');
+                this.$('.additional-info-label').text(additionalInfo);
+            }
+            return this;
+        },
+
+        goToPersonnelDetailWithId: function (event) {
+            var currentContext = this;
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
-            var latitude = this.model.get('latitude');
-            var longitude = this.model.get('longitude');
-            currentContext.dispatcher.trigger(EventNameEnum.goToDirectionsWithLatLng, latitude, longitude);
+            var personnelId = this.model.get('personnelId');
+            this.dispatcher.trigger(EventNameEnum.goToPersonnelDetailWithId, personnelId);
             return this;
         },
-        
-        /**
-         *
-         * @param event
-         * @returns {StationTileView}
-         */
-        goToStationWithId: function(event) {
+
+        goToStationDetailWithId: function (event) {
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
+
             var stationId = this.model.get('stationId');
-            currentContext.dispatcher.trigger(EventNameEnum.goToStationWithId, stationId);
+            if (stationId) {
+                this.dispatcher.trigger(EventNameEnum.goToStationDetailWithId, stationId);
+            } else {
+                var stationEntryLogId = this.model.get('stationEntryLogId');
+                this.dispatcher.trigger(EventNameEnum.goToAdHocStationWithId, stationEntryLogId);
+            }
             return this;
-        },
-        
-        /**
-         * 
-         */
-        onLoaded: function() {
-            console.trace('StationTileView.onLoaded');
-        },
-        
-        /**
-         * 
-         */
-        onLeave: function() {
-            console.trace('StationTileView.onLeave');
         }
+
     });
 
-    return StationTileView;
+    return StationEntryLogTileView;
 });

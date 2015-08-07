@@ -4,8 +4,9 @@ define(function (require) {
     var $ = require('jquery');
     var _ = require('underscore');
     var Backbone = require('backbone');
-    var BaseView = require('views/BaseView');
+    var BaseDetailView = require('views/BaseDetailView');
     var EventNameEnum = require('enums/EventNameEnum');
+    var StationTypeEnum = require('enums/StationTypeEnum');
     var StationEntryLogCollection = require('collections/StationEntryLogCollection');
     var AbnormalConditionCollection = require('collections/AbnormalConditionCollection');
     var WarningCollection = require('collections/WarningCollection');
@@ -15,391 +16,349 @@ define(function (require) {
     var utils = require('utils');
     var template = require('hbs!templates/StationDetailView');
 
-    var StationDetailView = BaseView.extend({
+    var StationDetailView = BaseDetailView.extend({
 
-        /**
-         *
-         * @param options
-         */
         initialize: function (options) {
-            console.trace('StationDetailView.initialize');
+            BaseDetailView.prototype.initialize.apply(this, arguments);
             options || (options = {});
             this.controller = options.controller;
             this.dispatcher = options.dispatcher || this;
 
             this.myPersonnelModel = options.myPersonnelModel;
-            this.openStationEntryLogModel = options.openStationEntryLogModel;
+            this.myOpenStationEntryLogModel = options.myOpenStationEntryLogModel;
 
             this.openStationEntryLogCollection = options.openStationEntryLogCollection || new StationEntryLogCollection();
             this.recentStationEntryLogCollection = options.recentStationEntryLogCollection || new StationEntryLogCollection();
             this.abnormalConditionCollection = options.abnormalConditionCollection || new AbnormalConditionCollection();
             this.warningCollection = options.warningCollection || new WarningCollection();
 
-            this.listenTo(this.model, 'sync', this.onSync);
-            this.listenTo(this.model, 'reset', this.onReset);
             this.listenTo(this, 'loaded', this.onLoaded);
-            this.listenTo(this, 'leave', this.onLeave);
+            this.listenTo(this, 'error', this.onError);
         },
 
-        /**
-         *
-         * @returns {StationDetailView}
-         */
         render: function () {
-            var currentContext = this;
-            var renderModel = _.extend({}, currentContext.model.attributes);
-            currentContext.setElement(template(renderModel));
-            currentContext.renderOpenStationEntryLogCollectionView();
-            currentContext.renderRecentStationEntryLogCollectionView();
-            currentContext.renderAbnormalConditionCollectionView();
-            currentContext.renderWarningCollectionView();
+            this.setElement(template(this.renderModel(this.model)));
+            this.renderOpenStationEntryLogCollectionView();
+            this.renderRecentStationEntryLogCollectionView();
+            this.renderAbnormalConditionCollectionView();
+            this.renderWarningCollectionView();
             return this;
         },
 
-        /**
-         *
-         * @returns {StationDetailView}
-         */
         renderOpenStationEntryLogCollectionView: function () {
-            var currentContext = this;
-            currentContext.openStationEntryLogCollectionViewInstance = new StationEntryLogCollectionView({
-                dispatcher: currentContext.dispatcher,
-                collection: currentContext.openStationEntryLogCollection,
+            this.openStationEntryLogCollectionViewInstance = new StationEntryLogCollectionView({
+                dispatcher: this.dispatcher,
+                collection: this.openStationEntryLogCollection,
                 showPersonnel: true,
                 showStation: false
             });
-            currentContext.appendChildTo(currentContext.openStationEntryLogCollectionViewInstance, '#open-station-entry-log-collection-view-container');
+            this.appendChildTo(this.openStationEntryLogCollectionViewInstance, '#open-station-entry-log-collection-view-container');
             return this;
         },
 
-        /**
-         *
-         * @returns {StationDetailView}
-         */
         renderRecentStationEntryLogCollectionView: function () {
-            var currentContext = this;
-            currentContext.recentStationEntryLogCollectionViewInstance = new StationEntryLogCollectionView({
-                dispatcher: currentContext.dispatcher,
-                collection: currentContext.recentStationEntryLogCollection,
+            this.recentStationEntryLogCollectionViewInstance = new StationEntryLogCollectionView({
+                dispatcher: this.dispatcher,
+                collection: this.recentStationEntryLogCollection,
                 showPersonnel: true,
                 showStation: false
             });
-            currentContext.appendChildTo(currentContext.recentStationEntryLogCollectionViewInstance, '#recent-station-entry-log-collection-view-container');
+            this.appendChildTo(this.recentStationEntryLogCollectionViewInstance, '#recent-station-entry-log-collection-view-container');
             return this;
         },
 
-        /**
-         *
-         * @returns {StationDetailView}
-         */
         renderAbnormalConditionCollectionView: function () {
-            var currentContext = this;
-            currentContext.abnormalConditionCollectionViewInstance = new AbnormalConditionCollectionView({
-                dispatcher: currentContext.dispatcher,
-                collection: currentContext.abnormalConditionCollection
+            this.abnormalConditionCollectionViewInstance = new AbnormalConditionCollectionView({
+                dispatcher: this.dispatcher,
+                collection: this.abnormalConditionCollection
             });
-            currentContext.appendChildTo(currentContext.abnormalConditionCollectionViewInstance, '#abnormal-condition-collection-view-container');
+            this.appendChildTo(this.abnormalConditionCollectionViewInstance, '#abnormal-condition-collection-view-container');
             return this;
         },
 
-        /**
-         *
-         * @returns {StationDetailView}
-         */
         renderWarningCollectionView: function () {
-            var currentContext = this;
-            currentContext.warningCollectionViewInstance = new WarningCollectionView({
-                dispatcher: currentContext.dispatcher,
-                collection: currentContext.warningCollection
+            this.warningCollectionViewInstance = new WarningCollectionView({
+                dispatcher: this.dispatcher,
+                collection: this.warningCollection
             });
-            currentContext.appendChildTo(currentContext.warningCollectionViewInstance, '#warning-collection-view-container');
+            this.appendChildTo(this.warningCollectionViewInstance, '#warning-collection-view-container');
             return this;
         },
 
-        /**
-         *
-         */
         events: {
             'click #go-to-directions-button': 'goToDirectionsWithLatLng',
             'click #go-to-check-in-button': 'goToCheckIn',
+            'click #go-to-edit-check-in-button': 'goToEditCheckIn',
             'click #go-to-check-out-button': 'goToCheckOut',
-            'click #go-to-open-check-in-button': 'goToStation',
-            'click #go-to-parent-station-button': 'goToStation',
-            'click #go-to-child-station-button': 'goToStation'
+            'click #go-to-open-check-in-button': 'goToOpenCheckIn',
+            'click #go-to-parent-station-button': 'goToStationDetailWithId',
+            'click #go-to-child-station-button': 'goToStationDetailWithId',
+            'click [data-toggle="panel"]': 'togglePanel'
         },
 
-        /**
-         *
-         * @returns {StationDetailView}
-         */
         updateViewFromModel: function () {
-            var currentContext = this;
-            currentContext.updateStationNameLabel();
-            currentContext.updateDistanceLabel();
+            this.updateIcons();
+            this.updateStationNameHeader();
+            this.updateDistanceLabel();
+            this.updateDirectionsLink();
+            this.updateLinkedStationLink();
+            this.updateDispatcherPhoneLabels();
+            this.updateStationDetailLabels();
             return this;
         },
 
-        /**
-         *
-         * @returns {StationDetailView}
-         */
-        updateStationNameLabel: function () {
-            var currentContext = this;
-            var stationName;
-            if (currentContext.model.has('stationName')) {
-                stationName = currentContext.model.get('stationName');
+        updateIcons: function () {
+            var hazardIconState = !(this.model.get('hasHazard') === true);
+            this.$('#station-hazard-icon').toggleClass('hidden', hazardIconState);
+
+            var abnormalConditionIconState = !(this.model.get('hasAbnormalConditions') === true);
+            this.$('#station-abnormal-condition-icon').toggleClass('hidden', abnormalConditionIconState);
+
+            var warningIconState = !(this.model.get('hasWarnings') === true);
+            this.$('#station-warning-icon').toggleClass('hidden', warningIconState);
+
+            var openCheckInIconState = !(this.model.get('hasOpenCheckIns') === true);
+            this.$('#station-open-check-in-icon').toggleClass('hidden', openCheckInIconState);
+
+            return this;
+        },
+
+        updateStationNameHeader: function () {
+            if (this.model.has('stationName')) {
+                var stationName = this.model.get('stationName');
+                this.$('#station-name-header').text(stationName);
             }
-            currentContext.$('#station-name-label').html(stationName);
             return this;
         },
 
-        /**
-         *
-         * @returns {StationDetailView}
-         */
         updateDistanceLabel: function () {
-            var currentContext = this;
-            var formattedDistance;
-            if (currentContext.model.has('distance') && currentContext.model.has('latitude') && currentContext.model.has('longitude')) {
-                currentContext.hasCoordinates = true;
-                var distance = currentContext.model.get('distance').toFixed(0);
-                formattedDistance = utils.formatString(utils.getResource('distanceFormatString'), [distance]);
+            if (this.model.has('distance')) {
+                var distance = this.model.get('distance').toFixed(2);
+                var formattedDistance = utils.formatString(utils.getResource('distanceFormatString'), [distance]);
+                this.$('#station-distance-label').text(formattedDistance);
             } else {
-                formattedDistance = utils.getResource('coordinatesUnavailableErrorMessage');
+                var distanceUnavailableErrorMessage = utils.getResource('distanceUnavailableErrorMessage');
+                this.$('#station-distance-label').text(distanceUnavailableErrorMessage);
             }
-            currentContext.$('#distance-label').html(formattedDistance);
             return this;
         },
 
+        updateDirectionsLink: function () {
+            var directionsLinkState = !(this.model.has('latitude') && this.model.has('longitude'));
+            this.$('#station-distance-directions-separator').toggleClass('hidden', directionsLinkState);
+            this.$('#go-to-directions-button').toggleClass('hidden', directionsLinkState);
+            return this;
+        },
 
-        /**
-         *
-         * @returns {StationDetailView}
-         */
-        updateCheckInControls: function () {
-            var currentContext = this;
-
-            if (currentContext.openStationEntryLogModel) {
-                if (currentContext.openStationEntryLogModel.has('stationEntryLogId')) {
-                    if (currentContext.openStationEntryLogModel.get('stationId') === currentContext.model.get('stationId')) {
-                        currentContext.showCheckOut();
-                    } else {
-                        currentContext.showGoToOpenCheckIn();
-                    }
+        updateLinkedStationLink: function () {
+            this.$('.linked-station-container').addClass('hidden');
+            if (this.model.has('linkedStationId')) {
+                if (this.model.get('stationType') === StationTypeEnum.tc) {
+                    this.$('#go-to-parent-station-button').text(this.model.get('linkedStationName'));
+                    this.$('#parent-station-container').removeClass('hidden');
+                    this.$('#child-station-container').addClass('hidden');
                 } else {
-                    currentContext.showCheckIn();
+                    this.$('#go-to-child-station-button').text(this.model.get('linkedStationName'));
+                    this.$('#parent-station-container').addClass('hidden');
+                    this.$('#child-station-container').removeClass('hidden');
+                }
+            }
+            return this;
+        },
+
+        updateDispatcherPhoneLabels: function () {
+            this.$('.dispatch-center-container').addClass('hidden');
+
+            if (this.model.get('stationType') === StationTypeEnum.tc) {
+                this.$('#network-operations-center-container').removeClass('hidden');
+                this.$('#network-operations-center-name-label').text(this.model.get('networkOperationsCenterName'));
+                this.$('#network-operations-center-phone-label').text(utils.formatPhone(this.model.get('networkOperationsCenterPhone')));
+            } else {
+                this.$('#transmission-dispatch-center-container').removeClass('hidden');
+                this.$('#distribution-dispatch-center-container').removeClass('hidden');
+
+                this.$('#transmission-dispatch-center-name-label').text(this.model.get('transmissionDispatchCenterName'));
+                this.$('#transmission-dispatch-center-phone-label').text(utils.formatPhone(this.model.get('transmissionDispatchCenterPhone')));
+
+                this.$('#distribution-dispatch-center-name-label').text(this.model.get('distributionDispatchCenterName'));
+                this.$('#distribution-dispatch-center-phone-label').text(utils.formatPhone(this.model.get('distributionDispatchCenterPhone')));
+            }
+            return this;
+        },
+
+        updateDispatcherCheckInIcon: function () {
+            this.$(utils.getResource('checkIcon')).addClass('hidden');
+            if (this.model.get('stationType') === StationTypeEnum.tc) {
+                this.$('#network-operations-center-check-in-icon').removeClass('hidden');
+            } else {
+                if (this.myOpenStationEntryLogModel.get('dispatchCenterId') === this.model.get('transmissionDispatchCenterId')) {
+                    this.$('#transmission-dispatch-center-check-in-icon').removeClass('hidden');
+                } else {
+                    this.$('#distribution-dispatch-center-check-in-icon').removeClass('hidden');
+                }
+            }
+            return this;
+        },
+
+        updateStationDetailLabels: function () {
+            this.$('#phone-label').text(this.model.get('phone'));
+            this.$('#radio-channel-label').text(this.model.get('radioChannel'));
+            this.$('#emergency-contacts-label').text(this.model.get('emergencyContacts'));
+            this.$('#city-label').text(this.model.get('city'));
+            this.$('#county-label').text(this.model.get('county'));
+            this.$('#state-label').text(this.model.get('state'));
+            this.$('#lat-lng-label').text(this.model.get('latitude') + ',' + this.model.get('longitude'));
+            this.$('#directions-label').text(this.model.get('directions'));
+            this.$('#additional-data-label').text(this.model.get('additionalData'));
+            return this;
+        },
+
+        updateCheckInControls: function () {
+            if (this.model.get('hasHazard') === true) {
+                this.showHazard();
+            } else {
+                if (this.myOpenStationEntryLogModel) {
+                    if (this.myOpenStationEntryLogModel.has('stationEntryLogId')) {
+                        if (this.myOpenStationEntryLogModel.get('stationId') === this.model.get('stationId')) {
+                            this.showCheckOut();
+                        } else {
+                            this.showGoToOpenCheckIn();
+                        }
+                    } else {
+                        this.showCheckIn();
+                    }
                 }
             }
 
+            return this;
+        },
+
+        showHazard: function () {
+            this.$('#hazard-notification-container').removeClass('hidden');
+            this.$('#hazard-detail-container').removeClass('hidden');
+            this.$('#check-in-container').addClass('hidden');
+            this.$('#check-out-container').addClass('hidden');
+            this.$('#open-check-in-container').addClass('hidden');
+            return this;
+        },
+
+        showCheckIn: function () {
+            var currentContext = this;
+            this.$('#hazard-notification-container').addClass('hidden');
+            this.$('#hazard-detail-container').addClass('hidden');
+            this.$('#check-in-container').removeClass('hidden');
+            this.$('#check-out-container').addClass('hidden');
+            this.$('#open-check-in-container').addClass('hidden');
+            return this;
+        },
+
+        showCheckOut: function () {
+            var currentContext = this;
+            this.$('#hazard-notification-container').addClass('hidden');
+            this.$('#hazard-detail-container').addClass('hidden');
+            this.$('#check-in-container').addClass('hidden');
+            this.$('#check-out-container').removeClass('hidden');
+            this.$('#open-check-in-container').addClass('hidden');
+            this.updateExpectedCheckOutLabel();
+            this.updateDispatcherCheckInIcon();
             return this;
         },
 
         updateExpectedCheckOutLabel: function () {
-            var currentContext = this;
-
-            if (currentContext.openStationEntryLogModel) {
-                var expectedOutTime = currentContext.openStationEntryLogModel.get('expectedOutTime');
+            if (this.myOpenStationEntryLogModel) {
+                var expectedOutTime = this.myOpenStationEntryLogModel.get('expectedOutTime');
                 var formattedExpectedOutTime = utils.formatDate(expectedOutTime);
                 var formattedExpectedCheckOutText = utils.formatString(utils.getResource('expectedCheckOutTextFormatString'), [formattedExpectedOutTime]);
-                currentContext.$('#expected-check-out-label').html(formattedExpectedCheckOutText);
+                this.$('#expected-check-out-label').text(formattedExpectedCheckOutText);
             }
             return this;
         },
 
-        /**
-         *
-         * @returns {StationDetailView}
-         */
-        updateOpenCheckInLabel: function () {
-            var currentContext = this;
-            var formattedOpenCheckInText = '';
-            if (currentContext.openStationEntryLogModel) {
-                var stationName = currentContext.openStationEntryLogModel.get('stationName');
-                var inTime = currentContext.openStationEntryLogModel.get('inTime');
-                var formattedInTime = utils.formatDate(inTime);
-                formattedOpenCheckInText = utils.formatString(utils.getResource('openCheckInTextFormatString'), [stationName, formattedInTime]);
-                currentContext.$('#open-check-in-label').html(formattedOpenCheckInText);
-            }
-            return this;
-        },
-
-        /**
-         *
-         * @returns {StationDetailView}
-         */
-        showHazard: function () {
-            var currentContext = this;
-            var hazardNotificationMessage = utils.getResource('hazardNotificationMessage');
-            currentContext.$('#hazard-notification-label').text(hazardNotificationMessage);
-            currentContext.$('#hazard-notification-container').removeClass('hidden');
-            currentContext.$('#hazard-detail-container').removeClass('hidden');
-            currentContext.$('#check-in-container').addClass('hidden');
-            currentContext.$('#check-out-container').addClass('hidden');
-            currentContext.$('#open-check-in-container').addClass('hidden');
-            return this;
-        },
-
-        /**
-         *
-         * @returns {StationDetailView}
-         */
-        showCheckIn: function () {
-            var currentContext = this;
-            if (currentContext.model.has('hasHazard') && currentContext.model.get('hasHazard') === 'true') {
-                currentContext.showHazard();
-            } else {
-                currentContext.$('#hazard-notification-container').addClass('hidden');
-                currentContext.$('#hazard-detail-container').addClass('hidden');
-                currentContext.$('#check-in-container').removeClass('hidden');
-                currentContext.$('#check-out-container').addClass('hidden');
-                currentContext.$('#open-check-in-container').addClass('hidden');
-
-            }
-            return this;
-        },
-
-        /**
-         *
-         * @returns {StationDetailView}
-         */
-        showCheckOut: function () {
-            var currentContext = this;
-            if (currentContext.model.has('hasHazard') && currentContext.model.get('hasHazard') === 'true') {
-                currentContext.showHazard();
-            } else {
-                currentContext.$('#hazard-notification-container').addClass('hidden');
-                currentContext.$('#hazard-detail-container').addClass('hidden');
-                currentContext.$('#check-in-container').addClass('hidden');
-                currentContext.$('#check-out-container').removeClass('hidden');
-                currentContext.$('#open-check-in-container').addClass('hidden');
-                currentContext.updateExpectedCheckOutLabel();
-            }
-            return this;
-        },
-
-        /**
-         *
-         * @returns {StationDetailView}
-         */
         showGoToOpenCheckIn: function () {
-            var currentContext = this;
-            if (currentContext.model.has('hasHazard') && currentContext.model.get('hasHazard') === 'true') {
-                currentContext.showHazard();
-            } else {
-                currentContext.$('#hazard-notification-container').addClass('hidden');
-                currentContext.$('#hazard-detail-container').addClass('hidden');
-                currentContext.$('#check-in-container').addClass('hidden');
-                currentContext.$('#check-out-container').addClass('hidden');
-                currentContext.$('#open-check-in-container').removeClass('hidden');
-            }
+            this.$('#hazard-notification-container').addClass('hidden');
+            this.$('#hazard-detail-container').addClass('hidden');
+            this.$('#check-in-container').addClass('hidden');
+            this.$('#check-out-container').addClass('hidden');
+            this.$('#open-check-in-container').removeClass('hidden');
             return this;
         },
 
-        /**
-         *
-         * @param event
-         * @returns {StationDetailView}
-         */
         goToDirectionsWithLatLng: function (event) {
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
-            var latitude = currentContext.model.get('latitude');
-            var longitude = currentContext.model.get('longitude');
-            currentContext.dispatcher.trigger(EventNameEnum.showProgressView);
-            //currentContext.dispatcher.trigger(EventNameEnum.goToDirectionsWithLatLng, latitude, longitude);
+            var latitude = this.model.get('latitude');
+            var longitude = this.model.get('longitude');
+            this.dispatcher.trigger(EventNameEnum.goToDirectionsWithLatLng, latitude, longitude);
             return this;
         },
 
-        /**
-         *
-         * @param event
-         * @returns {StationDetailView}
-         */
         goToCheckIn: function (event) {
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
-            currentContext.dispatcher.trigger(EventNameEnum.goToCheckIn, currentContext.model.get('stationId'));
+            var stationId = this.model.get('stationId');
+            this.dispatcher.trigger(EventNameEnum.goToCheckIn, stationId);
             return this;
         },
 
-        /**
-         *
-         * @param event
-         * @returns {StationDetailView}
-         */
+        goToEditCheckIn: function (event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var stationEntryLogId = this.myOpenStationEntryLogModel.get('stationEntryLogId');
+            var stationId = this.myOpenStationEntryLogModel.get('stationId');
+            this.dispatcher.trigger(EventNameEnum.goToEditCheckIn, stationEntryLogId, stationId);
+            return this;
+        },
+
         goToCheckOut: function (event) {
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
-            currentContext.dispatcher.trigger(EventNameEnum.goToCheckOut, currentContext.openStationEntryLogModel);
+            var stationEntryLogId = this.myOpenStationEntryLogModel.get('stationEntryLogId');
+            var stationId = this.myOpenStationEntryLogModel.get('stationId');
+            this.dispatcher.trigger(EventNameEnum.goToCheckOut, stationEntryLogId, stationId);
             return this;
         },
 
-        /**
-         *
-         * @param event
-         * @returns {StationDetailView}
-         */
-        goToStation: function (event) {
+        goToOpenCheckIn: function (event) {
             if (event) {
                 event.preventDefault();
-                if (event.target) {
-                    var currentContext = this;
-                    var stationId = $(event.target).attr('data-station-id');
-                    if (stationId) {
-                        currentContext.dispatcher.trigger(EventNameEnum.goToStationWithId, stationId);
-                    }
-                }
             }
+            if (this.myOpenStationEntryLogModel.has('stationId')) {
+                var stationId = this.myOpenStationEntryLogModel.get('stationId');
+                this.dispatcher.trigger(EventNameEnum.goToStationDetailWithId, stationId);
+            } else {
+                var stationEntryLogId = this.myOpenStationEntryLogModel.get('stationEntryLogId');
+                this.dispatcher.trigger(EventNameEnum.goToAdHocStationWithId, stationEntryLogId);
+            }
+        },
+
+        goToStationDetailWithId: function (event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var linkedStationId = this.model.get('linkedStationId');
+            this.dispatcher.trigger(EventNameEnum.goToStationDetailWithId, linkedStationId);
             return this;
         },
-        /**
-         *
-         */
-        onSync: function () {
-            var currentContext = this;
-            currentContext.$('.wait-for-loaded').addClass('hidden');
-            currentContext.$('.station-detail-loading-image-container').removeClass('hidden');
-        },
 
-        /**
-         *
-         */
-        onReset: function () {
-            var currentContext = this;
-            currentContext.$('.station-detail-loading-image-container').addClass('hidden');
-            currentContext.$('.wait-for-loaded').removeClass('hidden');
-        },
-
-        /**
-         *
-         */
         onLoaded: function () {
-            var currentContext = this;
-            currentContext.$('.station-detail-loading-image-container').addClass('hidden');
-            currentContext.$('.wait-for-loaded').removeClass('hidden');
+            this.updateViewFromModel();
+            this.updateCheckInControls();
+            this.showLoading();
             var options = {
-                stationId: currentContext.model.get('stationId')
+                stationId: this.model.get('stationId')
             };
-            currentContext.updateViewFromModel();
-            currentContext.updateCheckInControls();
-            currentContext.dispatcher.trigger(EventNameEnum.refreshStationEntryLogCollection, currentContext.openStationEntryLogCollection, _.extend({}, options, {'open': true}));
-            currentContext.dispatcher.trigger(EventNameEnum.refreshStationEntryLogCollection, currentContext.recentStationEntryLogCollection, _.extend({}, options, {'recent': true}));
-            currentContext.dispatcher.trigger(EventNameEnum.refreshAbnormalConditionCollection, currentContext.abnormalConditionCollection, _.extend({}, options, {'open': true}));
-            currentContext.dispatcher.trigger(EventNameEnum.refreshWarningCollection, currentContext.warningCollection, _.extend({}, options, {'active': true}));
+            this.dispatcher.trigger(EventNameEnum.refreshStationEntryLogCollection, this.openStationEntryLogCollection, _.extend({}, options, {open: true}));
+            this.dispatcher.trigger(EventNameEnum.refreshStationEntryLogCollection, this.recentStationEntryLogCollection, _.extend({}, options, {recent: true}));
+            this.dispatcher.trigger(EventNameEnum.getAbnormalConditionsByStationId, this.abnormalConditionCollection, _.extend({}, options, {open: true}));
+            this.dispatcher.trigger(EventNameEnum.getWarningsByStationId, this.warningCollection, _.extend({}, options, {active: true}));
         },
 
-        /**
-         *
-         */
-        onLeave: function () {
-            var currentContext = this;
-            console.trace('StationDetailView.onLeave');
+        onError: function (error) {
+            this.showError(error);
         }
     });
 

@@ -5,14 +5,14 @@ define(function(require) {
     var _ = require('underscore');
     var Backbone = require('backbone');
 
-    var EventDipatcher = function(options) {
+    var EventDispatcher = function(options) {
         if (this.initialize) {
             this.initialize.apply(this, arguments);
         }
     };
 
-    _.extend(EventDipatcher.prototype, Backbone.Events, {
+    _.extend(EventDispatcher.prototype, Backbone.Events, {
     });
 
-    return EventDipatcher;
+    return EventDispatcher;
 });

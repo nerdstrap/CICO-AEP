@@ -1,10 +1,23 @@
-<div class="station-collection-view">
-    <div class="station-collection-loading-image-container hidden">
-        <span class="loading-message">{{resource "stationCollectionLoadingMessageText"}}</span>
-        <img class="loading-image" src="{{resource 'loadingImageSrc'}}" alt="{{resource 'loadingImageAlt'}}" />
+<div class="station-entry-log-collection-view">
+    <div class="panel panel-collapse active">
+        <div data-target="#panel-collapse-{{cid}}" data-toggle="panel">
+            <div class="right">
+                <i class="fa {{resource 'toggleShowIcon'}} toggle-show"></i>
+                <i class="fa {{resource 'toggleHideIcon'}} toggle-hide"></i>
+            </div>
+            <div class="hidden {{cid}}-progress">
+                <span class="progress-message">{{resource "stationEntryLogCollectionLoadingMessageText"}}</span>
+                <img class="progress-image" src="{{resource 'progressImageSrc'}}" alt="{{resource 'progressImageAlt'}}"/>
+            </div>
+            <div class="hidden {{cid}}-error">
+                <span class="error-message">{{resource "stationEntryLogCollectionErrorMessageText"}}</span>
+            </div>
+            <div class="hidden {{cid}}-info">
+                <span class="info-message"></span>
+            </div>
+        </div>
+        <div id="panel-collapse-{{cid}}" class="panel-active-show collapse in">
+            <div class="tile-wrap {{cid}}-loading"></div>
+        </div>
     </div>
-    <div class="station-collection-message-container hidden">
-        <span class="station-collection-message-label"></span>
-    </div>
-    <div class="tile-wrap"></div>
 </div>

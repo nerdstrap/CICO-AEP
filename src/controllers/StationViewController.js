@@ -1,4 +1,4 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var $ = require('jquery');
@@ -9,293 +9,258 @@ define(function(require) {
     var StationEntryLogModel = require('models/StationEntryLogModel');
     var StationSearchView = require('views/StationSearchView');
     var StationDetailView = require('views/StationDetailView');
-    var AdHocStationView = require('views/AdHocStationView');
+    var AdHocStationDetailView = require('views/AdHocStationDetailView');
     var EventNameEnum = require('enums/EventNameEnum');
     var StationTypeEnum = require('enums/StationTypeEnum');
     var CheckInTypeEnum = require('enums/CheckInTypeEnum');
 
-    var StationController = function(options) {
+    var StationController = function (options) {
         options || (options = {});
         this.initialize.apply(this, arguments);
     };
 
     _.extend(StationController.prototype, Backbone.Events, {
-        /**
-         * 
-         * @param {type} options
-         * @returns {StationController}
-         */
-        initialize: function(options) {
+
+        initialize: function (options) {
+            console.trace('StationController.initialize');
             options || (options = {});
             this.router = options.router;
             this.dispatcher = options.dispatcher;
+            this.geoLocationService = options.geoLocationService;
             this.persistenceContext = options.persistenceContext;
 
             this.listenTo(this.dispatcher, EventNameEnum.goToStationSearch, this.goToStationSearch);
-            this.listenTo(this.dispatcher, EventNameEnum.goToStationWithId, this.goToStationWithId);
-            this.listenTo(this.dispatcher, EventNameEnum.goToAdHocStationWithId, this.goToAdHocStationWithId);
-            this.listenTo(this.dispatcher, EventNameEnum.refreshStationCollectionByGps, this.refreshStationCollectionByGps);
-            this.listenTo(this.dispatcher, EventNameEnum.refreshStationCollection, this.refreshStationCollection);
-            this.listenTo(this.dispatcher, EventNameEnum.refreshStationEntryLogCollection, this.refreshStationEntryLogCollection);
-            this.listenTo(this.dispatcher, EventNameEnum.refreshAbnormalConditionCollection, this.refreshAbnormalConditionCollection);
-            this.listenTo(this.dispatcher, EventNameEnum.refreshWarningCollection, this.refreshWarningCollection);
-        },
-        /**
-         * 
-         * @returns {promise}
-         */
-        goToStationSearch: function() {
-            var currentContext = this;
-            var deferred = $.Deferred();
+            this.listenTo(this.dispatcher, EventNameEnum.goToStationDetailWithId, this.goToStationDetailWithId);
+            this.listenTo(this.dispatcher, EventNameEnum.goToAdHocStationDetailWithId, this.goToAdHocStationDetailWithId);
+            this.listenTo(this.dispatcher, EventNameEnum.getNearbyStations, this.getNearbyStations);
+            this.listenTo(this.dispatcher, EventNameEnum.getRecentStations, this.getRecentStations);
+            this.listenTo(this.dispatcher, EventNameEnum.getStationsByStationName, this.getStationsByStationName);
+            this.listenTo(this.dispatcher, EventNameEnum.getAbnormalConditions, this.getAbnormalConditions);
+            this.listenTo(this.dispatcher, EventNameEnum.getWarnings, this.getWarnings);
 
+            this.distanceThreshold = 50;
+            this.resultCountThreshold = 20;
+        },
+
+        goToStationSearch: function () {
+            var self = this;
+            var deferred = $.Deferred();
             var myPersonnelModel = new PersonnelModel();
-            var openStationEntryLogModel = new StationEntryLogModel();
+            var myOpenStationEntryLogModel = new StationEntryLogModel();
             var stationSearchView = new StationSearchView({
-                dispatcher: currentContext.dispatcher,
+                dispatcher: self.dispatcher,
                 myPersonnelModel: myPersonnelModel,
-                openStationEntryLogModel: openStationEntryLogModel
+                myOpenStationEntryLogModel: myOpenStationEntryLogModel
             });
 
-            currentContext.router.swapContent(stationSearchView);
-            currentContext.router.navigate('station');
+            self.router.swapContent(stationSearchView);
+            self.router.navigate('station');
 
-            currentContext.persistenceContext.getMyPersonnelAndOpenStationEntryLogs(myPersonnelModel, openStationEntryLogModel)
-                    .done(function() {
-                        stationSearchView.trigger('loaded');
-                        deferred.resolve(stationSearchView);
-                    })
-                    .fail(function(error) {
-                        stationSearchView.trigger('error');
-                        deferred.reject(error);
-                    });
+            $.when(self.persistenceContext.getMyPersonnel(), self.persistenceContext.getMyOpenStationEntryLog())
+                .done(function (myPersonnelData, myOpenStationEntryLogData) {
+                    myPersonnelModel.set(myPersonnelData);
+                    myOpenStationEntryLogModel.set(myOpenStationEntryLogData);
+                    self.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel, myOpenStationEntryLogModel);
+                    stationSearchView.trigger('loaded');
+                    deferred.resolve(stationSearchView);
+                })
+                .fail(function (error) {
+                    stationSearchView.trigger('error', error);
+                    deferred.reject(error);
+                });
 
             return deferred.promise();
         },
-        /**
-         * 
-         * @param {type} stationId
-         * @returns {promise}
-         */
-        goToStationWithId: function(stationId) {
-            var currentContext = this;
+
+        goToStationDetailWithId: function (stationId) {
+            var self = this;
             var deferred = $.Deferred();
-
-            var idRegex = /^\d+$/;
-            var stationType = StationTypeEnum.td;
-            if (idRegex.test(stationId)) {
-                stationId = parseInt(stationId, 10);
-            } else {
-                stationType = StationTypeEnum.tc;
-            }
-            var stationModel = new StationModel({
-                stationId: stationId,
-                stationType: stationType
-            });
-
             var myPersonnelModel = new PersonnelModel();
-            var openStationEntryLogModel = new StationEntryLogModel();
+            var myOpenStationEntryLogModel = new StationEntryLogModel();
+            var stationModel = new StationModel({
+                stationId: stationId
+            });
             var stationDetailView = new StationDetailView({
-                dispatcher: currentContext.dispatcher,
+                dispatcher: self.dispatcher,
                 model: stationModel,
                 myPersonnelModel: myPersonnelModel,
-                openStationEntryLogModel: openStationEntryLogModel
+                myOpenStationEntryLogModel: myOpenStationEntryLogModel
             });
 
-            currentContext.router.swapContent(stationDetailView);
-            currentContext.router.navigate('station/' + stationId);
+            self.router.swapContent(stationDetailView);
+            self.router.navigate('station/' + stationId);
 
-            $.when(currentContext.persistenceContext.getMyPersonnelAndOpenStationEntryLogs(myPersonnelModel, openStationEntryLogModel), currentContext.persistenceContext.getStationById(stationModel))
-                    .done(function() {
-                        currentContext.dispatcher.trigger(EventNameEnum.myIdentityReset, myPersonnelModel);
-                        currentContext.dispatcher.trigger(EventNameEnum.openEntryLogReset, openStationEntryLogModel);
-                        stationDetailView.trigger('loaded');
-                        deferred.resolve(stationDetailView);
-                    })
-                    .fail(function(error) {
-                        stationDetailView.trigger('error');
-                        deferred.reject(error);
-                    });
+            $.when(self.persistenceContext.getMyPersonnel(), self.persistenceContext.getMyOpenStationEntryLog(), self.persistenceContext.getStationByStationId(stationId))
+                .done(function (myPersonnelData, myOpenStationEntryLogData, stationData) {
+                    myPersonnelModel.set(myPersonnelData);
+                    myOpenStationEntryLogModel.set(myOpenStationEntryLogData);
+                    self.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel, myOpenStationEntryLogModel);
+                    stationModel.set(stationData);
+                    stationDetailView.trigger('loaded');
+                    deferred.resolve(stationDetailView);
+                })
+                .fail(function (error) {
+                    stationDetailView.trigger('error', error);
+                    deferred.reject(error);
+                });
 
             return deferred.promise();
         },
-        
-        /**
-         * 
-         * @param {type} stationEntryLogId
-         * @returns {promise}
-         */
-        goToAdHocStationWithId: function(stationEntryLogId) {
-            var currentContext = this;
+
+        goToAdHocStationDetailWithId: function (stationEntryLogId) {
+            var self = this;
             var deferred = $.Deferred();
-            
+
             var myPersonnelModel = new PersonnelModel();
-            var openStationEntryLogModel = new StationEntryLogModel();
+            var myOpenStationEntryLogModel = new StationEntryLogModel();
             var stationEntryLogModel = new StationEntryLogModel({
                 stationEntryLogId: stationEntryLogId,
-                checkInType: CheckInTypeEnum.adhoc,
+                checkInType: CheckInTypeEnum.adHoc,
                 stationType: StationTypeEnum.tc
             });
-            var adHocStationView = new AdHocStationView({
-                dispatcher: currentContext.dispatcher,
+            var adHocStationView = new AdHocStationDetailView({
+                dispatcher: self.dispatcher,
                 model: stationEntryLogModel,
                 myPersonnelModel: myPersonnelModel,
-                openStationEntryLogModel: openStationEntryLogModel
+                myOpenStationEntryLogModel: myOpenStationEntryLogModel
             });
 
-            currentContext.router.swapContent(adHocStationView);
-            currentContext.router.navigate('entry/adhoc/' + stationEntryLogId);
+            self.router.swapContent(adHocStationView);
+            self.router.navigate('station/adhoc/' + stationEntryLogId);
 
-            $.when(currentContext.persistenceContext.getMyPersonnelAndOpenStationEntryLogs(myPersonnelModel, openStationEntryLogModel), currentContext.persistenceContext.getStationEntryLogById(stationEntryLogModel))
-                    .done(function() {
-                        currentContext.dispatcher.trigger(EventNameEnum.myIdentityReset, myPersonnelModel);
-                        currentContext.dispatcher.trigger(EventNameEnum.openEntryLogReset, openStationEntryLogModel);
-                        adHocStationView.trigger('loaded');
-                        deferred.resolve(adHocStationView);
-                    })
-                    .fail(function(error) {
-                        adHocStationView.trigger('error');
-                        deferred.reject(error);
-                    });
-
-            return deferred.promise();
-        },
-        /**
-         * 
-         * @param {type} stationCollection
-         * @param {type} options
-         * @returns {promise}
-         */
-        refreshStationCollectionByGps: function(stationCollection, options) {
-            options || (options = {});
-            var currentContext = this;
-            var deferred = $.Deferred();
-
-            stationCollection.trigger('sync');
-            currentContext.persistenceContext.refreshStationCollectionByGps(stationCollection, options)
-                    .done(function() {
-                        deferred.resolve(stationCollection);
-                    })
-                    .fail(function(error) {
-                        deferred.reject(error);
-                    });
+            $.when(self.persistenceContext.getMyPersonnel(), self.persistenceContext.getMyOpenStationEntryLog(), self.persistenceContext.getStationEntryLogByStationEntryLogId(stationEntryLogId))
+                .done(function (myPersonnelData, myOpenStationEntryLogData, stationEntryLogData) {
+                    myPersonnelModel.set(myPersonnelData);
+                    myOpenStationEntryLogModel.set(myOpenStationEntryLogData);
+                    self.dispatcher.trigger(EventNameEnum.myPersonnelReset, myPersonnelModel, myOpenStationEntryLogModel);
+                    stationEntryLogModel.set(stationEntryLogData);
+                    adHocStationView.trigger('loaded');
+                    deferred.resolve(adHocStationView);
+                })
+                .fail(function (error) {
+                    adHocStationView.trigger('error', error);
+                    deferred.reject(error);
+                });
 
             return deferred.promise();
         },
-        /**
-         * 
-         * @param {type} stationCollection
-         * @param {type} options
-         * @returns {promise}
-         */
-        refreshStationCollection: function(stationCollection, options) {
-            options || (options = {});
-            var currentContext = this;
-            var deferred = $.Deferred();
 
-            stationCollection.trigger('sync');
-            currentContext.persistenceContext.refreshStationCollection(stationCollection, options)
-                    .done(function() {
-                        deferred.resolve(stationCollection);
-                    })
-                    .fail(function(error) {
-                        deferred.reject(error);
-                    });
+        getNearbyStations: function (stationCollection, includeDol, includeNoc) {
+            var self = this;
+            var deferred = $.Deferred();
+            self.geoLocationService.getCurrentPosition()
+                .done(function (position) {
+                    self.persistenceContext.getNearbyStations(position.coords.latitude, position.coords.longitude, includeDol, includeNoc, self.distanceThreshold, self.resultCountThreshold)
+                        .done(function (stationsData) {
+                            stationCollection.reset(stationsData);
+                            deferred.resolve(stationCollection);
+                        })
+                        .fail(function (getNearbyStationsError) {
+                            stationCollection.trigger('error', getNearbyStationsError);
+                            deferred.reject(getNearbyStationsError);
+                        });
+                })
+                .fail(function (getCurrentPositionError) {
+                    stationCollection.trigger('error', getCurrentPositionError);
+                    deferred.reject(getCurrentPositionError);
+                });
 
             return deferred.promise();
         },
-        
-        /**
-         *
-         * @param stationEntryLogCollection
-         * @param options
-         * @returns {promise}
-         */
-        refreshStationEntryLogCollection: function(stationEntryLogCollection, options) {
-            var currentContext = this;
-            var deferred = $.Deferred();
 
-            stationEntryLogCollection.trigger('sync');
-            currentContext.persistenceContext.refreshStationEntryLogCollection(stationEntryLogCollection, options)
-                    .done(function() {
-                        deferred.resolve(stationEntryLogCollection);
-                    })
-                    .fail(function(error) {
-                        deferred.reject(error);
-                    });
+        getRecentStations: function (stationCollection, includeDol, includeNoc) {
+            var self = this;
+            var deferred = $.Deferred();
+            self.persistenceContext.getRecentStations(includeDol, includeNoc, self.resultCountThreshold)
+                .done(function (stationsData) {
+                    stationCollection.reset(stationsData);
+                    deferred.resolve(stationCollection);
+                })
+                .fail(function (getRecentStationsError) {
+                    stationCollection.trigger('error', getRecentStationsError);
+                    deferred.reject(getRecentStationsError);
+                });
 
             return deferred.promise();
         },
-        
-        /**
-         *
-         * @param abnormalConditionCollection
-         * @param options
-         * @returns {promise}
-         */
-        refreshAbnormalConditionCollection: function(abnormalConditionCollection, options) {
-            var currentContext = this;
-            var deferred = $.Deferred();
 
-            abnormalConditionCollection.trigger('sync');
-            currentContext.persistenceContext.refreshAbnormalConditionCollection(abnormalConditionCollection, options)
-                    .done(function() {
-                        deferred.resolve(abnormalConditionCollection);
-                    })
-                    .fail(function(error) {
-                        deferred.reject(error);
-                    });
+        getStationsByStationName: function (stationCollection, stationName, includeDol, includeNoc) {
+            var self = this;
+            var deferred = $.Deferred();
+            self.persistenceContext.getStationsByStationName(stationName, includeDol, includeNoc)
+                .done(function (stationsData) {
+                    stationCollection.reset(stationsData);
+                    deferred.resolve(stationCollection);
+                })
+                .fail(function (error) {
+                    stationCollection.trigger('error', error);
+                    deferred.reject(error);
+                });
 
             return deferred.promise();
         },
-        
-        /**
-         *
-         * @param warningCollection
-         * @param options
-         * @returns {promise}
-         */
-        refreshWarningCollection: function(warningCollection, options) {
-            var currentContext = this;
-            var deferred = $.Deferred();
 
-            warningCollection.trigger('sync');
-            currentContext.persistenceContext.refreshWarningCollection(warningCollection, options)
-                    .done(function() {
-                        deferred.resolve(warningCollection);
-                    })
-                    .fail(function(error) {
-                        deferred.reject(error);
-                    });
+        getAbnormalConditionsByStationId: function (abnormalConditionCollection, stationId) {
+            var self = this;
+            var deferred = $.Deferred();
+            self.persistenceContext.getAbnormalConditionsByStationId(stationId)
+                .done(function (abnormalConditionsData) {
+                    abnormalConditionCollection.reset(abnormalConditionsData);
+                    deferred.resolve(abnormalConditionCollection);
+                })
+                .fail(function (error) {
+                    abnormalConditionCollection.trigger('error', error);
+                    deferred.reject(error);
+                });
 
             return deferred.promise();
         },
-        postAddStationWarning: function(stationWarningModel) {
-            var currentContext = this;
+
+        getWarningsByStationId: function (warningCollection, stationId) {
+            var self = this;
+            var deferred = $.Deferred();
+            self.persistenceContext.getWarningsByStationId(stationId)
+                .done(function (warningsData) {
+                    warningCollection.reset(warningsData);
+                    deferred.resolve(warningCollection);
+                })
+                .fail(function (error) {
+                    warningCollection.trigger('error', error);
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        addWarning: function (warningModel) {
+            var self = this;
             var deferred = $.Deferred();
 
-            $.when(currentContext.appService.postAddStationWarning(stationWarningModel.attributes)).done(function(postAddWarningResults) {
-                stationWarningModel.set(postAddWarningResults.stationWarning);
-                stationWarningModel.trigger(EventNameEnum.addWarningSuccess, postAddWarningResults.stationWarning);
-                deferred.resolve(postAddWarningResults);
-            }).fail(function(jqXHR, textStatus, errorThrown) {
-                stationWarningModel.trigger(EventNameEnum.addWarningError, jqXHR.responseText);
+            $.when(self.persistenceContext.postAddWarning(warningModel.attributes)).done(function (postAddWarningResults) {
+                warningModel.set(postAddWarningResults.warning);
+                warningModel.trigger(EventNameEnum.addWarningSuccess, postAddWarningResults.warning);
+                deferred.resolveWith(self, [postAddWarningResults]);
+            }).fail(function (jqXHR, textStatus, errorThrown) {
+                warningModel.trigger(EventNameEnum.addWarningError, jqXHR.responseText);
                 deferred.reject('error');
             });
 
             return deferred.promise();
         },
-        postClearStationWarning: function(stationWarningModel) {
-            var currentContext = this;
+
+        clearWarning: function (warningModel) {
+            var self = this;
             var deferred = $.Deferred();
 
-            $.when(currentContext.appService.postClearStationWarning(stationWarningModel.attributes)).done(function(postClearWarningResults) {
-                stationWarningModel.set(postClearWarningResults.stationWarning);
-                stationWarningModel.trigger(EventNameEnum.clearWarningSuccess, postClearWarningResults.stationWarning);
-                deferred.resolve(postClearWarningResults);
-            }).fail(function(jqXHR, textStatus, errorThrown) {
-                stationWarningModel.clear();
-                deferred.reject('error');
-            });
+            self.persistenceContext.postClearWarning(warningModel.attributes)
+                .done(function (postClearWarningResults) {
+                    warningModel.set(postClearWarningResults.warning);
+                    warningModel.trigger(EventNameEnum.clearWarningSuccess, postClearWarningResults.warning);
+                    deferred.resolveWith(self, [postClearWarningResults]);
+                }).fail(function (jqXHR, textStatus, errorThrown) {
+                    warningModel.clear();
+                    deferred.reject('error');
+                });
 
             return deferred.promise();
         }

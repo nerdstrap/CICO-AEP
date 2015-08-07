@@ -98,7 +98,7 @@ define(function (require) {
                 type: 'PUT',
                 url: config.apiUrl() + '/stationEntryLog/checkOut'
             });
-        },
+        }
     });
 
     return StationEntryLogRepository;

@@ -13,20 +13,20 @@ define(function (require) {
     var template = require('hbs!templates/AdHocCheckInModalView');
 
     var AdHocCheckInModalView = BaseModalView.extend({
+        id: '#ad-hoc-check-in-modal-view',
 
-        /**
-         *
-         * @param options
-         */
         initialize: function (options) {
+            BaseModalView.prototype.initialize.apply(this, arguments);
             options || (options = {});
             this.dispatcher = options.dispatcher || this;
 
             this.myPersonnelModel = options.myPersonnelModel;
-            this.openEntryLogyModel = options.openEntryLogyModel;
+            this.myOpenStationEntryLogModel = options.myOpenStationEntryLogModel;
             this.purposeCollection = options.purposeCollection;
             this.durationCollection = options.durationCollection;
             this.areaCollection = options.areaCollection;
+
+            this.$validating = this.$('.validating');
 
             this.listenTo(this.model, 'validated', this.onValidated);
             this.listenTo(this.purposeCollection, 'reset', this.renderPurposes);
@@ -35,409 +35,257 @@ define(function (require) {
             this.listenTo(this.dispatcher, EventNameEnum.checkInSuccess, this.onCheckInSuccess);
             this.listenTo(this.dispatcher, EventNameEnum.checkInError, this.onCheckInError);
             this.listenTo(this, 'loaded', this.onLoaded);
-            this.listenTo(this, 'leave', this.onLeave);
+            this.listenTo(this, 'error', this.onError);
         },
 
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
         render: function () {
-            var currentContext = this;
-            currentContext.setElement(template());
-            currentContext.bindValidation();
+            this.setElement(template(this.renderModel(this.model)));
+            this.bindValidation();
             return this;
         },
 
-        /**
-         *
-         */
         events: {
+            'input [data-input="tel"]': 'formTelephoneInput',
+            'input [data-input="text"]': 'formTextInput',
+            'click [data-button="clear"]': 'clearFormInput',
             'change #purpose-input': 'purposeChanged',
             'change #duration-input': 'durationChanged',
             'click #submit-check-in-button': 'submitCheckIn',
-            'click #cancel-check-in-button': 'cancelCheckIn'
+            'click #cancel-check-in-button': 'cancelCheckIn',
+            'click .ok-modal-button': 'hide'
         },
 
-        /**
-         *
-         * @param purposes
-         * @returns {AdHocCheckInModalView}
-         */
         renderPurposes: function () {
-            var currentContext = this;
             var optionsHtml = '';
-            currentContext.purposeCollection.forEach(function (purposeModel) {
+            this.purposeCollection.forEach(function (purposeModel) {
                 optionsHtml += optionTemplate({
                     'value': purposeModel.get('value'),
                     'text': purposeModel.get('text')
                 });
             });
-            currentContext.$('#purpose-input').append(optionsHtml);
+            this.$('#purpose-input').append(optionsHtml);
             return this;
         },
 
-        /**
-         *
-         * @param durations
-         * @returns {AdHocCheckInModalView}
-         */
         renderDurations: function () {
-            var currentContext = this;
             var optionsHtml = '';
-            currentContext.durationCollection.forEach(function (durationModel) {
+            this.durationCollection.forEach(function (durationModel) {
                 optionsHtml += optionTemplate({
                     'value': durationModel.get('value'),
                     'text': durationModel.get('text')
                 });
             });
-            currentContext.$('#duration-input').append(optionsHtml);
+            this.$('#duration-input').append(optionsHtml);
             return this;
         },
 
-        /**
-         *
-         * @param areas
-         * @returns {AdHocCheckInModalView}
-         */
         renderAreas: function () {
-            var currentContext = this;
             var optionsHtml = '';
-            currentContext.areaCollection.forEach(function (areaModel) {
+            this.areaCollection.forEach(function (areaModel) {
                 optionsHtml += optionTemplate({
                     'value': areaModel.get('value'),
                     'text': areaModel.get('text')
                 });
             });
-            currentContext.$('#area-input').append(optionsHtml);
+            this.$('#area-input').append(optionsHtml);
             return this;
         },
 
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
         bindValidation: function () {
-            var currentContext = this;
             validation.bind(this, {
                 selector: 'name'
             });
             return this;
         },
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
-        validateOpenEntryLogModel: function () {
-            var currentContext = this;
-            if (currentContext.openEntryLogyModel && currentContext.openEntryLogyModel.has('stationEntryLogId')) {
-                currentContext.trigger('error');
+
+        validatePreconditions: function () {
+            var isValid = true;
+            if (this.myOpenStationEntryLogModel && this.myOpenStationEntryLogModel.has('stationEntryLogId')) {
+                isValid = false;
+                this.trigger('error', utils.getResource('openCheckInErrorMessage'));
             }
-            return this;
+            return isValid;
         },
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
-        updateModelFromParentModels: function () {
-            var currentContext = this;
-            currentContext.model.set({
-                personnelId: currentContext.myPersonnelModel.get('personnelId'),
-                fullName: currentContext.myPersonnelModel.get('fullName'),
-                firstName: currentContext.myPersonnelModel.get('firstName'),
-                middleName: currentContext.myPersonnelModel.get('middleName'),
-                lastName: currentContext.myPersonnelModel.get('lastName'),
-                contactNumber: currentContext.myPersonnelModel.get('contactNumber'),
-                email: currentContext.myPersonnelModel.get('email')
+
+        updateModelFromDependencies: function () {
+            this.model.set({
+                personnelId: this.myPersonnelModel.get('personnelId'),
+                userName: this.myPersonnelModel.get('userName'),
+                userRole: this.myPersonnelModel.get('userRole'),
+                personnelType: this.myPersonnelModel.get('personnelType'),
+                firstName: this.myPersonnelModel.get('firstName'),
+                middleName: this.myPersonnelModel.get('middleName'),
+                lastName: this.myPersonnelModel.get('lastName'),
+                contactNumber: this.myPersonnelModel.get('contactNumber'),
+                email: this.myPersonnelModel.get('email'),
+                companyName: this.myPersonnelModel.get('companyName')
             });
             return this;
         },
 
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
         updateViewFromModel: function () {
-            var currentContext = this;
-            currentContext.updateContactNumberInput();
-            currentContext.updatePurposeInput();
-            currentContext.updateDurationInput();
-            currentContext.updateExpectedOutTimeInput();
+            this.updateContactNumberInput();
             return this;
         },
 
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
-        updateGpsInput: function (latitude, longitude) {
-            var currentContext = this;
+        updateGpsLabel: function (latitude, longitude) {
             if (latitude && longitude) {
-                var formattedGpsText = latitude.toString() + ', ' + longitude.toString();
-                currentContext.$('#gps-input').val(formattedGpsText);
+                var formattedGpsText = latitude.toString() + ',' + longitude.toString();
+                this.$('#gps-label').text(formattedGpsText);
             } else {
-                //show no coords
+                this.$('#gps-label').text(utils.getResource('gpsUnavailableErrorMessage'));
             }
             return this;
         },
 
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
         updateContactNumberInput: function () {
-            var currentContext = this;
-            if (currentContext.model.has('contactNumber')) {
-                var contactNumber = currentContext.model.get('contactNumber');
-                var cleanedContactNumber = utils.cleanPhone(contactNumber);
-                var formattedContactNumber = utils.formatPhone(cleanedContactNumber);
-                currentContext.$('#contact-number-input').val(formattedContactNumber).parent().addClass('control-highlight');
+            if (this.model.has('contactNumber')) {
+                var contactNumber = this.model.get('contactNumber');
+                this.$('#contact-number-input').val(utils.formatPhone(contactNumber));
+                this.$('[data-parent="#contact-number-input"]').toggleClass('hidden', (contactNumber.length === 0));
             }
             return this;
         },
 
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
-        updatePurposeInput: function () {
-            var currentContext = this;
-            if (currentContext.model.has('purpose')) {
-                var purpose = currentContext.model.get('purpose');
-                currentContext.$('#purpose-input').val(purpose).parent().addClass('control-highlight');
-            }
-            return this;
-        },
-
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
         updateDurationInput: function (newDuration) {
-            var currentContext = this;
             if (newDuration) {
-                currentContext.model.set({duration: newDuration});
+                this.model.set({duration: newDuration});
             }
-            if (currentContext.model.has('duration')) {
-                var duration = currentContext.model.get('duration');
-                currentContext.$('#duration-input').val(duration).parent().addClass('control-highlight');
+            if (this.model.has('duration')) {
+                var duration = this.model.get('duration');
+                this.$('#duration-input').val(duration);
             }
             return this;
         },
 
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
-        updateExpectedOutTimeInput: function (duration) {
-            var currentContext = this;
+        updateExpectedOutTimeLabel: function (duration) {
             if (duration) {
                 var currentTime = new Date();
                 var expectedOutTime = utils.addMinutes(currentTime, duration);
-                currentContext.model.set({expectedOutTime: expectedOutTime});
+                this.model.set({expectedOutTime: expectedOutTime});
             }
-            if (currentContext.model.has('expectedOutTime')) {
-                var expectedOutTime = currentContext.model.get('expectedOutTime');
-                currentContext.$('#expected-out-time-input').val(utils.formatDate(expectedOutTime)).parent().addClass('control-highlight');
+            if (this.model.has('expectedOutTime')) {
+                var expectedOutTime = this.model.get('expectedOutTime');
+                this.$('#expected-out-time-label').text(utils.formatDate(expectedOutTime));
             }
-
             return this;
         },
 
-        /**
-         *
-         * @param event
-         * @returns {AdHocCheckInModalView}
-         */
         purposeChanged: function (event) {
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
-            var purpose = currentContext.$('#purpose-input option:selected').text();
-            currentContext.togglePurposeOther(purpose === 'Other');
-            if (!currentContext.manualDurationEntry) {
-                var defaultDuration = currentContext.$('#purpose-input').val();
-                currentContext.updateDurationInput(defaultDuration);
-                currentContext.updateExpectedOutTimeInput(defaultDuration);
+            var purpose = this.$('#purpose-input option:selected').text();
+            this.$('#purpose-other-input-container').toggleClass('hidden', (purpose !== 'other'));
+            if (!this.manualDurationEntry) {
+                var defaultDuration = this.$('#purpose-input').val();
+                this.updateDurationInput(defaultDuration);
+                this.updateExpectedOutTimeLabel(defaultDuration);
             }
             return this;
         },
 
-        /**
-         *
-         * @param show
-         * @returns {AdHocCheckInModalView}
-         */
-        togglePurposeOther: function (show) {
-            var currentContext = this;
-            if (show) {
-                currentContext.$('#purpose-other-input-container').removeClass('hidden');
-            } else {
-                currentContext.$('#purpose-other-input-container').addClass('hidden');
-            }
+        togglePurposeOther: function (state) {
+
             return this;
         },
 
-        /**
-         *
-         * @param event
-         * @returns {AdHocCheckInModalView}
-         */
         durationChanged: function (event) {
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
-            currentContext.manualDurationEntry = true;
-            var duration = Number(currentContext.$('#duration-input').val());
-            currentContext.updateExpectedOutTimeInput(duration);
+            this.manualDurationEntry = true;
+            var duration = Number(this.$('#duration-input').val());
+            this.updateExpectedOutTimeLabel(duration);
             return this;
         },
 
-        /**
-         *
-         * @param event
-         * @returns {AdHocCheckInModalView}
-         */
         submitCheckIn: function (event) {
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
-            currentContext.updateModelFromView();
-            currentContext.model.validate();
+            this.showProgress(false, utils.getResource('adHocCheckInProgressMessageText'));
+            this.updateModelFromView();
+            this.model.validate();
             return this;
         },
 
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
         updateModelFromView: function () {
-            var currentContext = this;
             var attributes = {};
-
-            var rawContactNumber = currentContext.$('#contact-number-input').val();
+            attributes.adHocDescription = this.$('#ad-hoc-description-input').val();
+            var rawContactNumber = this.$('#contact-number-input').val();
             attributes.contactNumber = utils.cleanPhone(rawContactNumber);
-            attributes.purpose = currentContext.$('#purpose-input option:selected').text();
-            if (currentContext.$('#purpose-input').prop('selectedIndex') === 0) {
+            attributes.purpose = this.$('#purpose-input option:selected').text();
+            if (this.$('#purpose-input').prop('selectedIndex') === 0) {
                 attributes.purpose = '';
             }
             if (attributes.purpose === 'Other') {
-                attributes.purposeOther = currentContext.$('#purpose-other-input').val();
+                attributes.purposeOther = this.$('#purpose-other-input').val();
             }
-            attributes.duration = currentContext.$('#duration-input').val();
-            attributes.groupCheckIn = currentContext.$('#has-group-check-in-input').is(':checked');
-            attributes.additionalInfo = currentContext.$('#additional-info-input').val();
-
-            currentContext.model.set(attributes);
+            attributes.duration = this.$('#duration-input').val();
+            var areaAndRegion = this.$('#area-input').val().split('|');
+            attributes.areaName = areaAndRegion[0];
+            attributes.regionName = areaAndRegion[1];
+            attributes.withCrew = this.$('#yes-with-crew-input').is(':checked');
+            attributes.additionalInfo = this.$('#additional-info-input').val();
+            this.model.set(attributes);
             return this;
         },
 
-        /**
-         *
-         * @param isValid
-         * @param model
-         * @param errors
-         * @returns {AdHocCheckInModalView}
-         */
         onValidated: function (isValid, model, errors) {
-            var currentContext = this;
-
+            this.$validating.removeClass('invalid');
             if (isValid) {
-                currentContext.checkIn();
+                this.checkIn();
             } else {
                 for (var error in errors) {
-                    //currentContext.$('[name="' + error + '"]').parent().addClass('form-group-red');
+                    this.$('[name="' + error + '"]').parent().addClass('invalid');
                 }
+                this.showLoading();
             }
             return this;
         },
 
-        /**
-         *
-         * @param event
-         * @returns {AdHocCheckInModalView}
-         */
         checkIn: function (event) {
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
-            currentContext.dispatcher.trigger(EventNameEnum.checkIn, currentContext.model);
+            this.dispatcher.trigger(EventNameEnum.checkIn, this.model);
             return this;
         },
 
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
-        show: function () {
-            var currentContext = this;
-            $('#ad-hoc-check-in-modal-view').foundation('reveal', 'open');
-            return this;
-        },
-
-        /**
-         *
-         * @param event
-         * @returns {AdHocCheckInModalView}
-         */
         cancelCheckIn: function (event) {
             if (event) {
                 event.preventDefault();
             }
-            var currentContext = this;
-            $('#ad-hoc-check-in-modal-view').foundation('reveal', 'close');
+            this.hide();
             return this;
         },
 
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
         onCheckInSuccess: function () {
-            var currentContext = this;
-            var stationEntryLogId = currentContext.model.get('stationEntryLogId');
-            currentContext.dispatcher.trigger(EventNameEnum.goToAdHocStationWithId, stationEntryLogId);
+            var adHocDescription = this.model.get('adHocDescription');
+            var formattedInTime = utils.formatDate(this.model.get('inTime'));
+            var adHocCheckInSuccessMessageText = utils.formatString(utils.getResource('adHocCheckInSuccessMessageTextFormatString'), [adHocDescription, formattedInTime]);
+            this.hideProgress();
+            this.showInfo(adHocCheckInSuccessMessageText);
             return this;
         },
 
-        /**
-         *
-         * @returns {AdHocCheckInModalView}
-         */
-        onCheckInError: function () {
-            var currentContext = this;
-            return this;
+        onCheckInError: function (error) {
+            this.showError(error);
         },
 
-        /**
-         *
-         */
-        onError: function (error) {
-            var currentContext = this;
-            return this;
-        },
-
-        /**
-         *
-         */
         onLoaded: function () {
-            console.trace('AdHocCheckInModalView.onLoaded');
-            var currentContext = this;
-            currentContext.validateOpenEntryLogModel();
-            currentContext.updateModelFromParentModels();
-            currentContext.updateViewFromModel();
+            if (this.validatePreconditions()) {
+                this.updateModelFromDependencies();
+                this.updateViewFromModel();
+                this.showLoading();
+            }
         },
 
-        /**
-         *
-         */
-        onLeave: function () {
-            console.trace('AdHocCheckInModalView.onLeave');
+        onError: function (error) {
+            this.showError(error);
         }
+
     });
 
     return AdHocCheckInModalView;

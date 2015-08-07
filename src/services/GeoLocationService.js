@@ -1,4 +1,4 @@
-define(function(require) {
+define(function (require) {
     'use strict';
 
     var module = require('module');
@@ -10,7 +10,7 @@ define(function(require) {
     var enableHighAccuracy = masterConfig.enableHighAccuracy || false;
     var maximumAge = masterConfig.maximumAge || 60000;
 
-    var GeoLocationService = function(options) {
+    var GeoLocationService = function (options) {
         options || (options = {});
         this.positionOptions = {
             'timeout': timeout,
@@ -21,22 +21,23 @@ define(function(require) {
     };
 
     _.extend(GeoLocationService.prototype, {
-        initialize: function(options) {
+        initialize: function (options) {
             options || (options = {});
         },
-        getCurrentPosition: function() {
+        getCurrentPosition: function () {
             var currentContext = this;
             var deferred = $.Deferred();
 
             if (window.navigator.geolocation) {
                 window.navigator.geolocation.getCurrentPosition(
-                        function() {
-                            deferred.resolveWith(currentContext, arguments);
-                        },
-                        function() {
-                            deferred.rejectWith(currentContext, arguments);
-                        },
-                        currentContext.positionOptions);
+                    function () {
+                        deferred.resolveWith(currentContext, arguments);
+                    },
+                    function () {
+                        deferred.rejectWith(currentContext, arguments);
+                    },
+                    currentContext.positionOptions
+                );
             } else {
                 var capabilityError = new Error('geolocation capability not found');
                 deferred.rejectWith(currentContext, [capabilityError]);

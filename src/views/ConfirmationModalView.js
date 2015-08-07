@@ -9,79 +9,51 @@ define(function (require) {
     var template = require('hbs!templates/ConfirmationModalView');
 
     var ConfirmationModalView = BaseModalView.extend({
+        
+        id: '#confirmation-modal-view',
+        
         initialize: function (options) {
+            BaseModalView.prototype.initialize.apply(this, arguments);
             options || (options = {});
             this.dispatcher = options.dispatcher || this;
 
             this.listenTo(this, 'loaded', this.onLoaded);
-            this.listenTo(this, 'leave', this.onLeave);
+            this.listenTo(this, 'error', this.onError);
         },
 
-        /**
-         *
-         * @returns {ConfirmationModalView}
-         */
         render: function () {
-            var currentContext = this;
-            currentContext.$el.html(template());
+            this.setElement(template(this.renderModel(this.model)));
             return this;
         },
 
-        /**
-         *
-         * @returns {ConfirmationModalView}
-         */
-        show: function (confirmationType, header, message) {
-            var currentContext = this;
-            currentContext.updateConfirmationHeader(header);
-            currentContext.updateConfirmationMessage(message);
-            $('#confirmation-modal-view').foundation('reveal', 'open');
+        events: {
+            'click .ok-modal-button': 'hide'
+        },
+
+        beforeShow: function (confirmationType, header, message) {
+            this.updateConfirmationHeader(header);
+            this.updateConfirmationMessage(message);
             return this;
         },
 
-        /**
-         *
-         * @returns {ConfirmationModalView}
-         */
-        hide: function () {
-            var currentContext = this;
-            $('#confirmation-modal-view').foundation('reveal', 'close');
-            return this;
-        },
-
-        /**
-         *
-         * @returns {ConfirmationModalView}
-         */
         updateConfirmationHeader: function (header) {
-            var currentContext = this;
-            currentContext.$('#confirmation-header-label').html(header);
+            this.$('#confirmation-header-label').text(header);
             return this;
         },
 
-        /**
-         *
-         * @returns {ConfirmationModalView}
-         */
         updateConfirmationMessage: function (message) {
-            var currentContext = this;
-            currentContext.$('#confirmation-message-label').html(message);
+            this.$('#confirmation-message').text(message);
             return this;
         },
 
-        /**
-         *
-         */
         onLoaded: function () {
-            console.trace('StationCollectionView.onLoaded');
+            this.showLoading();
         },
 
-        /**
-         *
-         */
-        onLeave: function () {
-            console.trace('StationCollectionView.onLeave');
+        onError: function (error) {
+            this.showError(error);
         }
+
     });
 
     return ConfirmationModalView;

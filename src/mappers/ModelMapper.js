@@ -28,7 +28,7 @@ define(function(require) {
             }
             return this;
         },
-        mapGetOpenStationEntryLogsResponse: function(getOpenStationEntryLogsResponse, openStationEntryLogModel) {
+        mapGetOpenStationEntryLogsResponse: function(getOpenStationEntryLogsResponse, myOpenStationEntryLogModel) {
             if (getOpenStationEntryLogsResponse) {
                 var getOpenStationEntryLogsData;
                 if (getOpenStationEntryLogsResponse.length > 0) {
@@ -37,7 +37,7 @@ define(function(require) {
                     getOpenStationEntryLogsData = getOpenStationEntryLogsResponse;
                 }
                 if (getOpenStationEntryLogsData && getOpenStationEntryLogsData.stationEntryLogs && getOpenStationEntryLogsData.stationEntryLogs.length > 0) {
-                    openStationEntryLogModel.set(getOpenStationEntryLogsData.stationEntryLogs[0]);
+                    myOpenStationEntryLogModel.set(getOpenStationEntryLogsData.stationEntryLogs[0]);
                 }
             }
             return this;

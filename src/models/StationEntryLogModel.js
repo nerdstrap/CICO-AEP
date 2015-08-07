@@ -25,33 +25,35 @@ define(function (require) {
                 pattern: 'digits',
                 length: 10
             },
-            selectPurpose: {
+            purpose: {
                 required: true
             },
             duration: {
                 required: true
             },
             dispatchCenterId: {
-                required: true
+                required: function () {
+                    return (this.get('stationType') === StationTypeEnum.td);
+                }
             },
             otherPurpose: {
                 required: function () {
                     return (this.get('selectPurpose') === 'Other');
                 }
             },
-            description: {
+            adHocDescription: {
                 required: function () {
-                    return (this.get('checkInType') === CheckInTypeEnum.adhoc);
+                    return (this.get('checkInType') === CheckInTypeEnum.adHoc);
                 }
             },
             areaName: {
                 required: function () {
-                    return (this.get('checkInType') === CheckInTypeEnum.adhoc);
+                    return (this.get('checkInType') === CheckInTypeEnum.adHoc);
                 }
             },
             regionName: {
                 required: function () {
-                    return (this.get('checkInType') === CheckInTypeEnum.adhoc);
+                    return (this.get('checkInType') === CheckInTypeEnum.adHoc);
                 }
             }
         },
@@ -71,6 +73,42 @@ define(function (require) {
                 (attributes = {})[key] = val;
             }
             if (attributes) {
+
+                if (attributes.hasOwnProperty('stationEntryLogId')) {
+                    var stationEntryLogId = attributes.stationEntryLogId;
+                    if (stationEntryLogId && !isNaN(stationEntryLogId)) {
+                        attributes.stationEntryLogId = Number(stationEntryLogId);
+                    }
+                }
+
+                if (attributes.hasOwnProperty('checkInType')) {
+                    var checkInType = attributes.checkInType;
+                    if (checkInType && !isNaN(checkInType)) {
+                        attributes.checkInType = Number(checkInType);
+                    }
+                }
+
+                var idRegex = /^\d+$/;
+
+                if (attributes.hasOwnProperty('stationId')) {
+                    var stationId = attributes.stationId;
+                    if (stationId && stationId.length > 0) {
+                        if (idRegex.test(stationId)) {
+                            attributes.stationId = parseInt(stationId, 10);
+                            attributes.stationType = StationTypeEnum.td;
+                        } else {
+                            attributes.stationType = StationTypeEnum.tc;
+                        }
+                    }
+                }
+
+                if (attributes.hasOwnProperty('personnelType')) {
+                    var personnelType = attributes.personnelType;
+                    if (personnelType && !isNaN(personnelType)) {
+                        attributes.personnelType = Number(personnelType);
+                    }
+                }
+
                 if (attributes.hasOwnProperty('latitude')) {
                     var latitude = attributes.latitude;
                     if (latitude && !isNaN(latitude)) {
@@ -99,6 +137,20 @@ define(function (require) {
                     }
                 }
 
+                if (attributes.hasOwnProperty('contactNumber')) {
+                    var contactNumber = attributes.contactNumber;
+                    if (contactNumber) {
+                        attributes.contactNumber = utils.cleanPhone(contactNumber);
+                    }
+                }
+
+                if (attributes.hasOwnProperty('withCrew')) {
+                    var withCrew = attributes.withCrew;
+                    if (withCrew) {
+                        attributes.withCrew = (withCrew === "true");
+                    }
+                }
+
                 if (attributes.hasOwnProperty('inTime') && attributes.hasOwnProperty('duration')) {
                     var inTime = attributes.inTime;
                     var duration = attributes.duration;
@@ -121,10 +173,17 @@ define(function (require) {
 
                 if (attributes.checkInStatus === CheckInStatusEnum.checkedIn) {
                     var expectedOutTimeElapsed = new Date() - attributes.expectedOutTime;
-                    if (expectedOutTimeElapsed >= config.expirationThreshold) {
+                    if (expectedOutTimeElapsed >= config.expirationThreshold()) {
                         attributes.checkInStatus = CheckInStatusEnum.overdue;
                     } else if (expectedOutTimeElapsed > 0) {
                         attributes.checkInStatus = CheckInStatusEnum.expired;
+                    }
+                }
+
+                if (attributes.hasOwnProperty('dispatchCenterId')) {
+                    var dispatchCenterId = attributes.dispatchCenterId;
+                    if (dispatchCenterId && !isNaN(dispatchCenterId)) {
+                        attributes.dispatchCenterId = Number(dispatchCenterId);
                     }
                 }
             }

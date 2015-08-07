@@ -11,14 +11,22 @@ define(function (require) {
     };
 
     _.extend(BaseView.prototype, CompositeView.prototype, {
-        /**
-         *
-         * @returns {BaseView}
-         */
-        completeLoading: function () {
-            var currentContext = this;
-            currentContext.trigger('loaded');
-            return this;
+
+        initialize: function () {
+            CompositeView.prototype.initialize.apply(this, arguments);
+        },
+
+        renderModel: function (model) {
+            var baseAttributes = {
+                cid: this.cid
+            };
+            var renderModel;
+            if (model) {
+                renderModel = _.extend({}, baseAttributes, model.attributes);
+            } else {
+                renderModel = _.extend({}, baseAttributes);
+            }
+            return renderModel;
         }
     });
 

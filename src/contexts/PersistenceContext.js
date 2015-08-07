@@ -6,25 +6,17 @@ define(function (require) {
     var Backbone = require('backbone');
     var utils = require('utils');
 
-    /**
-     *
-     * @param options
-     * @constructor
-     */
     var PersistenceContext = function (options) {
+        //noinspection JSUnusedAssignment
         options || (options = {});
         this.initialize.apply(this, arguments);
     };
 
     _.extend(PersistenceContext.prototype, {
-        /**
-         *
-         * @param options
-         */
+
         initialize: function (options) {
             console.trace('PersistenceContext.initialize');
             options || (options = {});
-            this.geoLocationService = options.geoLocationService;
             this.settingsRepository = options.settingsRepository;
             this.stationRepository = options.stationRepository;
             this.personnelRepository = options.personnelRepository;
@@ -32,426 +24,540 @@ define(function (require) {
             this.warningRepository = options.warningRepository;
             this.abnormalConditionRepository = options.abnormalConditionRepository;
             this.lookupDataItemRepository = options.lookupDataItemRepository;
-            this.mapper = options.mapper;
-        },
-        /**
-         *
-         * @param myPersonnelModel
-         * @param openStationEntryLogModel
-         * @returns {promise}
-         */
-        getMyPersonnelAndOpenStationEntryLogs: function (myPersonnelModel, openStationEntryLogModel) {
-            console.trace('PersistenceContext.getMyPersonnelAndOpenStationEntryLogs');
-            var currentContext = this;
-            var deferred = $.Deferred();
 
-            var getOpenStationEntryLogsRequest = {
-                open: true
+            this.defaultIncludeDol = true;
+            this.defaultIncludeNoc = true;
+            this.defaultDistanceThreshold = 50;
+            this.defaultResultCountThreshold = 20;
+        },
+
+        getMyPersonnel: function () {
+            var getMyPersonnelRequest = {};
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getMyPersonnel - ' + JSON.stringify(getMyPersonnelRequest));
+            this.personnelRepository.getMyPersonnel(getMyPersonnelRequest)
+                .done(function (getMyPersonnelResponse) {
+                    var results;
+                    if (getMyPersonnelResponse && getMyPersonnelResponse.personnels && getMyPersonnelResponse.personnels.length > 0) {
+                        results = getMyPersonnelResponse.personnels[0];
+                    }
+                    deferred.resolve(results);
+                })
+                .fail(function (error) {
+                    console.error(JSON.stringify(error));
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        getMyOpenStationEntryLog: function () {
+            var getMyOpenStationEntryLogRequest = {};
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getMyOpenStationEntryLog - ' + JSON.stringify(getMyOpenStationEntryLogRequest));
+            this.stationEntryLogRepository.getMyOpenStationEntryLog(getMyOpenStationEntryLogRequest)
+                .done(function (getMyOpenStationEntryLogResponse) {
+                    var results;
+                    if (getMyOpenStationEntryLogResponse && getMyOpenStationEntryLogResponse.stationEntryLogs && getMyOpenStationEntryLogResponse.stationEntryLogs.length > 0) {
+                        results = getMyOpenStationEntryLogResponse.stationEntryLogs[0];
+                    }
+                    deferred.resolve(results);
+                })
+                .fail(function (error) {
+                    console.error(JSON.stringify(error));
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        getStationByStationId: function (stationId) {
+            var getStationByStationIdRequest = {
+                stationId: stationId
             };
-            $.when(currentContext.personnelRepository.getMyPersonnel(), currentContext.stationEntryLogRepository.getOpenStationEntryLogs(getOpenStationEntryLogsRequest))
-                .done(function (getMyPersonnelResponse, getOpenStationEntryLogsResponse) {
-                    currentContext.mapper.mapGetMyPersonnelResponse(getMyPersonnelResponse, myPersonnelModel);
-                    currentContext.mapper.mapGetOpenStationEntryLogsResponse(getOpenStationEntryLogsResponse, openStationEntryLogModel);
-                    deferred.resolve(myPersonnelModel, openStationEntryLogModel);
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getStationByStationId - ' + JSON.stringify(getStationByStationIdRequest));
+            this.stationRepository.getStationByStationId(getStationByStationIdRequest)
+                .done(function (getStationByStationIdResponse) {
+                    var results;
+                    if (getStationByStationIdResponse && getStationByStationIdResponse.stations && getStationByStationIdResponse.stations.length > 0) {
+                        results = getStationByStationIdResponse.stations[0];
+                    }
+                    deferred.resolve(results);
                 })
                 .fail(function (error) {
+                    console.error(JSON.stringify(error));
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param stationModel
-         * @returns {promise}
-         */
-        getStationById: function (stationModel) {
-            console.trace('PersistenceContext.getStationById');
-            var currentContext = this;
-            var deferred = $.Deferred();
 
-            var getStationByIdRequest = _.extend({}, stationModel.attributes);
-            $.when(currentContext.stationRepository.getStations(getStationByIdRequest))
-                .done(function (getStationByIdResponse) {
-                    currentContext.geoLocationService.getCurrentPosition()
-                        .done(function (position) {
-                            utils.computeDistances(position.coords, getStationByIdResponse.stations)
-                            currentContext.mapper.mapGetStationByIdResponse(getStationByIdResponse, stationModel);
-                            deferred.resolve(stationModel);
-                        })
-                        .fail(function (getCurrentPositionError) {
-                            currentContext.mapper.mapGetStationByIdResponse(getStationByIdResponse, stationModel);
-                            deferred.resolve(stationModel);
-                        });
+        getPersonnelByPersonnelId: function (personnelId) {
+            var getPersonnelByPersonnelIdRequest = {
+                personnelId: personnelId
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getPersonnelByPersonnelId - ' + JSON.stringify(getPersonnelByPersonnelIdRequest));
+            this.personnelRepository.getPersonnelByPersonnelId(getPersonnelByPersonnelIdRequest)
+                .done(function (getPersonnelByPersonnelIdResponse) {
+                    var results;
+                    if (getPersonnelByPersonnelIdResponse && getPersonnelByPersonnelIdResponse.personnels && getPersonnelByPersonnelIdResponse.personnels.length > 0) {
+                        results = getPersonnelByPersonnelIdResponse.personnels[0];
+                    }
+                    deferred.resolve(results);
                 })
                 .fail(function (error) {
+                    console.error(JSON.stringify(error));
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param personnelModel
-         * @returns {promise}
-         */
-        getPersonnelById: function (personnelModel) {
-            console.trace('PersistenceContext.getPersonnelById');
-            var currentContext = this;
-            var deferred = $.Deferred();
 
-            var getPersonnelByIdRequest = _.extend({}, personnelModel.attributes);
-            $.when(currentContext.personnelRepository.getPersonnels(getPersonnelByIdRequest))
-                .done(function (getPersonnelByIdResponse) {
-                    currentContext.mapper.mapGetPersonnelByIdResponse(getPersonnelByIdResponse, personnelModel);
-                    deferred.resolve(personnelModel);
+        getPersonnelByUserName: function (userName) {
+            var getPersonnelByUserNameRequest = {
+                userName: userName
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getPersonnelByUserName - ' + JSON.stringify(getPersonnelByUserNameRequest));
+            this.personnelRepository.getPersonnelByUserName(getPersonnelByUserNameRequest)
+                .done(function (getPersonnelByUserNameResponse) {
+                    var results;
+                    if (getPersonnelByUserNameResponse && getPersonnelByUserNameResponse.personnels && getPersonnelByUserNameResponse.personnels.length > 0) {
+                        results = getPersonnelByUserNameResponse.personnels[0];
+                    }
+                    deferred.resolve(results);
                 })
                 .fail(function (error) {
+                    console.error(JSON.stringify(error));
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param personnelModel
-         * @returns {promise}
-         */
-        getPersonnelByName: function (personnelModel) {
-            console.trace('PersistenceContext.getPersonnelByName');
-            var currentContext = this;
-            var deferred = $.Deferred();
 
-            var getPersonnelByNameRequest = _.extend({}, personnelModel.attributes);
-            $.when(currentContext.personnelRepository.getPersonnels(getPersonnelByNameRequest))
-                .done(function (getPersonnelByNameResponse) {
-                    currentContext.mapper.mapGetPersonnelByIdResponse(getPersonnelByNameResponse, personnelModel);
-                    deferred.resolve(personnelModel);
+        getStationEntryLogByStationEntryLogId: function (stationEntryLogId) {
+            var getStationEntryLogByStationEntryLogIdRequest = {
+                stationEntryLogId: stationEntryLogId
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getStationEntryLogByStationEntryLogId - ' + JSON.stringify(getStationEntryLogByStationEntryLogIdRequest));
+            this.stationEntryLogRepository.getStationEntryLogByStationEntryLogId(getStationEntryLogByStationEntryLogIdRequest)
+                .done(function (getStationEntryLogByStationEntryLogIdResponse) {
+                    var results;
+                    if (getStationEntryLogByStationEntryLogIdResponse && getStationEntryLogByStationEntryLogIdResponse.stationEntryLogs && getStationEntryLogByStationEntryLogIdResponse.stationEntryLogs.length > 0) {
+                        results = getStationEntryLogByStationEntryLogIdResponse.stationEntryLogs[0];
+                    }
+                    deferred.resolve(results);
                 })
                 .fail(function (error) {
+                    console.error(JSON.stringify(error));
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param stationEntryLogModel
-         * @returns {promise}
-         */
-        getStationEntryLogById: function (stationEntryLogModel) {
-            console.trace('PersistenceContext.getStationEntryLogById');
-            var currentContext = this;
-            var deferred = $.Deferred();
 
-            var getStationEntryLogByIdRequest = _.extend({}, stationEntryLogModel.attributes);
-            $.when(currentContext.stationEntryLogRepository.getStationEntryLogs(getStationEntryLogByIdRequest))
-                .done(function (getStationEntryLogByIdResponse) {
-                    currentContext.mapper.mapGetStationEntryLogByIdResponse(getStationEntryLogByIdResponse, stationEntryLogModel);
-                    deferred.resolve(stationEntryLogModel);
+        getNearbyStations: function (latitude, longitude, includeDol, includeNoc, distanceThreshold, resultCountThreshold) {
+            if (!includeDol) {
+                includeDol = this.defaultIncludeDol;
+            }
+            if (!includeNoc) {
+                includeNoc = this.defaultIncludeNoc;
+            }
+            if (!distanceThreshold) {
+                distanceThreshold = this.defaultDistanceThreshold;
+            }
+            if (!resultCountThreshold) {
+                resultCountThreshold = this.defaultResultCountThreshold;
+            }
+            var getNearbyStationsRequest = {
+                latitude: latitude,
+                longitude: longitude,
+                includeDol: includeDol,
+                includeNoc: includeNoc,
+                distanceThreshold: distanceThreshold,
+                resultCountThreshold: resultCountThreshold
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getNearbyStations - ' + JSON.stringify(getNearbyStationsRequest));
+            this.stationRepository.getNearbyStations(getNearbyStationsRequest)
+                .done(function (getNearbyStationsResponse) {
+                    var results;
+                    if (getNearbyStationsResponse) {
+                        results = getNearbyStationsResponse.stations;
+                    }
+                    deferred.resolve(results);
                 })
                 .fail(function (error) {
+                    console.error(JSON.stringify(error));
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param purposeCollection
-         * @param durationCollection
-         * @param areaCollection
-         * @returns {promise}
-         */
-        getOptions: function (purposeCollection, durationCollection, areaCollection) {
-            console.trace('PersistenceContext.getOptions');
-            var currentContext = this;
-            var deferred = $.Deferred();
 
-            $.when(currentContext.lookupDataItemRepository.getOptions())
+        getRecentStations: function (includeDol, includeNoc, resultCountThreshold) {
+            if (!includeDol) {
+                includeDol = this.defaultIncludeDol;
+            }
+            if (!includeNoc) {
+                includeNoc = this.defaultIncludeNoc;
+            }
+            if (!resultCountThreshold) {
+                resultCountThreshold = this.defaultResultCountThreshold;
+            }
+            var getRecentStationsRequest = {
+                includeDol: includeDol,
+                includeNoc: includeNoc,
+                resultCountThreshold: resultCountThreshold
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getRecentStations - ' + JSON.stringify(getRecentStationsRequest));
+            this.stationRepository.getRecentStations(getRecentStationsRequest)
+                .done(function (getRecentStationsResponse) {
+                    var results;
+                    if (getRecentStationsResponse) {
+                        results = getRecentStationsResponse.stations;
+                    }
+                    deferred.resolve(results);
+                })
+                .fail(function (error) {
+                    console.error(JSON.stringify(error));
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        getStationsByStationName: function (stationName, includeDol, includeNoc, resultCountThreshold) {
+            if (!includeDol) {
+                includeDol = this.defaultIncludeDol;
+            }
+            if (!includeNoc) {
+                includeNoc = this.defaultIncludeNoc;
+            }
+            if (!resultCountThreshold) {
+                resultCountThreshold = this.defaultResultCountThreshold;
+            }
+            var getStationsByStationNameRequest = {
+                stationName: stationName,
+                includeDol: includeDol,
+                includeNoc: includeNoc,
+                resultCountThreshold: resultCountThreshold
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getStationsByStationName - ' + JSON.stringify(getStationsByStationNameRequest));
+            this.stationRepository.getStationsByStationName(getStationsByStationNameRequest)
+                .done(function (getStationsByStationNameResponse) {
+                    var results;
+                    if (getStationsByStationNameResponse) {
+                        results = getStationsByStationNameResponse.stations;
+                    }
+                    deferred.resolve(results);
+                })
+                .fail(function (error) {
+                    console.error(JSON.stringify(error));
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        getPersonnelsByUserName: function (userName, includeDol, includeNoc, resultCountThreshold) {
+            if (!includeDol) {
+                includeDol = this.defaultIncludeDol;
+            }
+            if (!includeNoc) {
+                includeNoc = this.defaultIncludeNoc;
+            }
+            if (!resultCountThreshold) {
+                resultCountThreshold = this.defaultResultCountThreshold;
+            }
+            var getPersonnelsByUserNameRequest = {
+                userName: userName,
+                includeDol: includeDol,
+                includeNoc: includeNoc,
+                resultCountThreshold: resultCountThreshold
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getPersonnelsByUserName - ' + JSON.stringify(getPersonnelsByUserNameRequest));
+            this.personnelRepository.getPersonnelsByUserName(getPersonnelsByUserNameRequest)
+                .done(function (getPersonnelsByUserNameResponse) {
+                    var results;
+                    if (getPersonnelsByUserNameResponse) {
+                        results = getPersonnelsByUserNameResponse.personnels;
+                    }
+                    deferred.resolve(results);
+                })
+                .fail(function (error) {
+                    console.error(JSON.stringify(error));
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        getRecentStationEntryLogsByStationId: function (stationId, resultCountThreshold) {
+            if (!resultCountThreshold) {
+                resultCountThreshold = this.defaultResultCountThreshold;
+            }
+            var getRecentStationEntryLogsByStationIdRequest = {
+                stationId: stationId,
+                resultCountThreshold: resultCountThreshold
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getRecentStationEntryLogsByStationId - ' + JSON.stringify(getRecentStationEntryLogsByStationIdRequest));
+            this.stationEntryLogRepository.getRecentStationEntryLogsByStationId(getRecentStationEntryLogsByStationIdRequest)
+                .done(function (getRecentStationEntryLogsByStationIdResponse) {
+                    var results;
+                    if (getRecentStationEntryLogsByStationIdResponse) {
+                        results = getRecentStationEntryLogsByStationIdResponse.stationEntryLogs;
+                    }
+                    deferred.resolve(results);
+                })
+                .fail(function (error) {
+                    console.error(JSON.stringify(error));
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        getRecentStationEntryLogsByPersonnelId: function (personnelId, resultCountThreshold) {
+            if (!resultCountThreshold) {
+                resultCountThreshold = this.defaultResultCountThreshold;
+            }
+            var getRecentStationEntryLogsByPersonnelIdRequest = {
+                personnelId: personnelId,
+                resultCountThreshold: resultCountThreshold
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getRecentStationEntryLogsByPersonnelId - ' + JSON.stringify(getRecentStationEntryLogsByPersonnelIdRequest));
+            this.stationEntryLogRepository.getRecentStationEntryLogsByPersonnelId(getRecentStationEntryLogsByPersonnelIdRequest)
+                .done(function (getRecentStationEntryLogsByPersonnelIdResponse) {
+                    var results;
+                    if (getRecentStationEntryLogsByPersonnelIdResponse) {
+                        results = getRecentStationEntryLogsByPersonnelIdResponse.stationEntryLogs;
+                    }
+                    deferred.resolve(results);
+                })
+                .fail(function (error) {
+                    console.error(JSON.stringify(error));
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        getRecentStationEntryLogsByUserName: function (userName, resultCountThreshold) {
+            if (!resultCountThreshold) {
+                resultCountThreshold = this.defaultResultCountThreshold;
+            }
+            var getRecentStationEntryLogsByUserNameRequest = {
+                userName: userName,
+                resultCountThreshold: resultCountThreshold
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getRecentStationEntryLogsByUserName - ' + JSON.stringify(getRecentStationEntryLogsByUserNameRequest));
+            this.stationEntryLogRepository.getRecentStationEntryLogsByUserName(getRecentStationEntryLogsByUserNameRequest)
+                .done(function (getRecentStationEntryLogsByUserNameResponse) {
+                    var results;
+                    if (getRecentStationEntryLogsByUserNameResponse) {
+                        results = getRecentStationEntryLogsByUserNameResponse.stationEntryLogs;
+                    }
+                    deferred.resolve(results);
+                })
+                .fail(function (error) {
+                    console.error(JSON.stringify(error));
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        getNearbyStationEntryLogs: function (latitude, longitude, includeDol, includeNoc, distanceThreshold, resultCountThreshold) {
+            if (!includeDol) {
+                includeDol = this.defaultIncludeDol;
+            }
+            if (!includeNoc) {
+                includeNoc = this.defaultIncludeNoc;
+            }
+            if (!distanceThreshold) {
+                distanceThreshold = this.defaultDistanceThreshold;
+            }
+            if (!resultCountThreshold) {
+                resultCountThreshold = this.defaultResultCountThreshold;
+            }
+            var getNearbyStationEntryLogsRequest = {
+                latitude: latitude,
+                longitude: longitude,
+                includeDol: includeDol,
+                includeNoc: includeNoc,
+                distanceThreshold: distanceThreshold,
+                resultCountThreshold: resultCountThreshold
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getNearbyStationEntryLogs - ' + JSON.stringify(getNearbyStationEntryLogsRequest));
+            this.stationEntryLogRepository.getNearbyStationEntryLogs(getNearbyStationEntryLogsRequest)
+                .done(function (getNearbyStationEntryLogsResponse) {
+                    var results;
+                    if (getNearbyStationEntryLogsResponse) {
+                        results = getNearbyStationEntryLogsResponse.stationEntryLogs;
+                    }
+                    deferred.resolve(results);
+                })
+                .fail(function (error) {
+                    console.error(JSON.stringify(error));
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        getAbnormalConditionsByStationId: function (stationId) {
+            var getAbnormalConditionsByStationIdRequest = {
+                stationId: stationId
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getAbnormalConditionsByStationId - ' + JSON.stringify(getAbnormalConditionsByStationIdRequest));
+            this.abnormalConditionRepository.getAbnormalConditionsByStationId(getAbnormalConditionsByStationIdRequest)
+                .done(function (getAbnormalConditionsByStationIdResponse) {
+                    var results;
+                    if (getAbnormalConditionsByStationIdResponse) {
+                        results = getAbnormalConditionsByStationIdResponse.abnormalConditions;
+                    }
+                    deferred.resolve(results);
+                })
+                .fail(function (error) {
+                    console.error(JSON.stringify(error));
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        getWarningsByStationId: function (stationId) {
+            var getWarningsByStationIdRequest = {
+                stationId: stationId
+            };
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getWarningsByStationId - ' + JSON.stringify(getWarningsByStationIdRequest));
+            this.warningRepository.getWarningsByStationId(getWarningsByStationIdRequest)
+                .done(function (getWarningsByStationIdResponse) {
+                    var results;
+                    if (getWarningsByStationIdResponse) {
+                        results = getWarningsByStationIdResponse.warnings;
+                    }
+                    deferred.resolve(results);
+                })
+                .fail(function (error) {
+                    console.error(JSON.stringify(error));
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        getOptions: function () {
+            var getOptionsRequest = {};
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getOptions - ' + JSON.stringify(getOptionsRequest));
+            this.warningRepository.getOptions(getOptionsRequest)
                 .done(function (getOptionsResponse) {
-                    if (purposeCollection) {
-                        purposeCollection.reset(getOptionsResponse.purposes);
+                    var purposes;
+                    var durations;
+                    var areas;
+                    if (getOptionsResponse) {
+                        purposes = getOptionsResponse.purposes;
+                        durations = getOptionsResponse.durations;
+                        areas = getOptionsResponse.areas;
                     }
-                    if (durationCollection) {
-                        durationCollection.reset(getOptionsResponse.durations);
+                    deferred.resolve(purposes, durations, areas);
+                })
+                .fail(function (error) {
+                    console.error(JSON.stringify(error));
+                    deferred.reject(error);
+                });
+
+            return deferred.promise();
+        },
+
+        getSettings: function () {
+            var getSettingsRequest = {};
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.getSettings - ' + JSON.stringify(getSettingsRequest));
+            this.settingsRepository.getSettings(getSettingsRequest)
+                .done(function (getSettingsResponse) {
+                    var helpEmail;
+                    var updateStationEmail;
+                    if (getSettingsResponse) {
+                        helpEmail = getSettingsResponse.helpEmail;
+                        updateStationEmail = getSettingsResponse.updateStationEmail;
                     }
-                    if (areaCollection) {
-                        durationCollection.reset(getOptionsResponse.areas);
-                    }
-                    deferred.resolve(purposeCollection, durationCollection, areaCollection);
+                    deferred.resolve(helpEmail, updateStationEmail);
                 })
                 .fail(function (error) {
+                    console.error(JSON.stringify(error));
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param stationCollection
-         * @param options
-         * @returns {promise}
-         */
-        refreshStationCollectionByGps: function (stationCollection, options) {
-            console.trace('PersistenceContext.refreshStationCollectionByGps');
-            options || (options = {});
-            var currentContext = this;
+
+        checkIn: function (checkInRequest) {
             var deferred = $.Deferred();
+            console.trace('PersistenceContext.checkIn - ' + JSON.stringify(checkInRequest));
 
-            currentContext.geoLocationService.getCurrentPosition()
-                .done(function (position) {
-                    var getNearbyStationsRequest = _.extend({}, options, {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    });
-                    currentContext.stationRepository.getNearbyStations(getNearbyStationsRequest)
-                        .done(function (getNearbyStationsResponse) {
-                            utils.computeDistances(position.coords, getNearbyStationsResponse.stations);
-                            stationCollection.reset(getNearbyStationsResponse.stations);
-                            deferred.resolve(stationCollection);
-                        })
-                        .fail(function (getNearbyStationsError) {
-                            stationCollection.trigger('error', getNearbyStationsError);
-                            deferred.reject(getNearbyStationsError);
-                        });
-                })
-                .fail(function (getCurrentPositionError) {
-                    stationCollection.trigger('error', getCurrentPositionError);
-                    deferred.reject(getCurrentPositionError);
-                });
-
-            return deferred.promise();
-        },
-        /**
-         *
-         * @param stationCollection
-         * @param options
-         * @returns {promise}
-         */
-        refreshStationCollection: function (stationCollection, options) {
-            console.trace('PersistenceContext.refreshStationCollection');
-            options || (options = {});
-            var currentContext = this;
-            var deferred = $.Deferred();
-
-            var getStationsRequest = _.extend({}, options);
-            currentContext.stationRepository.getStations(getStationsRequest)
-                .done(function (getStationsResponse) {
-                    currentContext.geoLocationService.getCurrentPosition()
-                        .done(function (position) {
-                            utils.computeDistances(position.coords, getStationByIdResponse.stations)
-                            stationCollection.reset(getStationsResponse.stations);
-                            deferred.resolve(stationCollection);
-                        })
-                        .fail(function (getCurrentPositionError) {
-                            stationCollection.reset(getStationsResponse.stations);
-                            deferred.resolve(stationCollection);
-                        });
-                })
-                .fail(function (error) {
-                    stationCollection.trigger('error', error);
-                    deferred.reject(error);
-                });
-
-            return deferred.promise();
-        },
-        /**
-         *
-         * @param personnelCollection
-         * @param options
-         * @returns {promise}
-         */
-        refreshPersonnelCollection: function (personnelCollection, options) {
-            console.trace('PersistenceContext.refreshPersonnelCollection');
-            options || (options = {});
-            var currentContext = this;
-            var deferred = $.Deferred();
-
-            var getPersonnelsRequest = _.extend({}, options);
-            currentContext.personnelRepository.getPersonnels(getPersonnelsRequest)
-                .done(function (getPersonnelsResponse) {
-                    personnelCollection.reset(getPersonnelsResponse.personnels);
-                    deferred.resolve(personnelCollection);
-                })
-                .fail(function (error) {
-                    personnelCollection.trigger('error', error);
-                    deferred.reject(error);
-                });
-
-
-            return deferred.promise();
-        },
-        /**
-         *
-         * @param entryLogCollection
-         * @param options
-         * @returns {promise}
-         */
-        refreshStationEntryLogCollectionByGps: function (entryLogCollection, options) {
-            console.trace('PersistenceContext.refreshStationEntryLogCollection');
-            options || (options = {});
-            var currentContext = this;
-            var deferred = $.Deferred();
-
-            currentContext.geoLocationService.getCurrentPosition()
-                .done(function (position) {
-                    var getNearbyStationEntryLogsRequest = _.extend({}, options, {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    });
-                    currentContext.stationEntryLogRepository.getNearbyStationEntryLogs(getNearbyStationEntryLogsRequest)
-                        .done(function (getNearbyStationEntryLogsResponse) {
-                            entryLogCollection.reset(getNearbyStationEntryLogsResponse.stationEntryLogs);
-                            deferred.resolve(entryLogCollection);
-                        })
-                        .fail(function (getNearbyStationEntryLogsError) {
-                            entryLogCollection.reset();
-                            deferred.reject(getNearbyStationEntryLogsError);
-                        });
-                })
-                .fail(function (getCurrentPositionError) {
-                    deferred.reject(getCurrentPositionError);
-                });
-
-            return deferred.promise();
-        },
-        /**
-         *
-         * @param entryLogCollection
-         * @param options
-         * @returns {promise}
-         */
-        refreshStationEntryLogCollection: function (entryLogCollection, options) {
-            console.trace('PersistenceContext.refreshStationEntryLogCollection');
-            options || (options = {});
-            var currentContext = this;
-            var deferred = $.Deferred();
-
-            var getStationEntryLogsRequest = _.extend({}, options);
-            currentContext.stationEntryLogRepository.getStationEntryLogs(getStationEntryLogsRequest)
-                .done(function (getStationEntryLogsResponse) {
-                    entryLogCollection.reset(getStationEntryLogsResponse.stationEntryLogs);
-                    deferred.resolve(entryLogCollection);
-                })
-                .fail(function (error) {
-                    entryLogCollection.reset();
-                    deferred.reject(error);
-                });
-
-            return deferred.promise();
-        },
-        /**
-         *
-         * @param warningCollection
-         * @param options
-         * @returns {promise}
-         */
-        refreshWarningCollection: function (warningCollection, options) {
-            console.trace('PersistenceContext.refreshWarningCollection');
-            options || (options = {});
-            var currentContext = this;
-            var deferred = $.Deferred();
-
-            var getWarningsRequest = _.extend({}, options);
-            currentContext.warningRepository.getWarnings(getWarningsRequest)
-                .done(function (getWarningsResponse) {
-                    warningCollection.reset(getWarningsResponse.warnings);
-                    deferred.resolve(warningCollection);
-                })
-                .fail(function (error) {
-                    warningCollection.trigger('error');
-                    deferred.reject(error);
-                });
-
-            return deferred.promise();
-        },
-        /**
-         *
-         * @param abnormalConditionCollection
-         * @param options
-         * @returns {promise}
-         */
-        refreshAbnormalConditionCollection: function (abnormalConditionCollection, options) {
-            console.trace('PersistenceContext.refreshAbnormalConditionCollection');
-            options || (options = {});
-            var currentContext = this;
-            var deferred = $.Deferred();
-
-            var getAbnormalConditionsRequest = _.extend({}, options);
-            currentContext.abnormalConditionRepository.getAbnormalConditions(getAbnormalConditionsRequest)
-                .done(function (getAbnormalConditionsResponse) {
-                    abnormalConditionCollection.reset(getAbnormalConditionsResponse.abnormalConditions);
-                    deferred.resolve(abnormalConditionCollection);
-                })
-                .fail(function (error) {
-                    abnormalConditionCollection.trigger('error');
-                    deferred.reject(error);
-                });
-
-            return deferred.promise();
-        },
-        /**
-         *
-         * @param stationEntryLogModel
-         * @returns {promise}
-         */
-        checkIn: function (stationEntryLogModel) {
-            console.trace('PersistenceContext.checkIn');
-            var currentContext = this;
-            var deferred = $.Deferred();
-
-            var checkInRequest = _.extend({}, stationEntryLogModel.attributes);
-            currentContext.stationEntryLogRepository.postCheckIn(checkInRequest)
+            this.stationEntryLogRepository.checkIn(checkInRequest)
                 .done(function (checkInResponse) {
-                    stationEntryLogModel.set(checkInResponse.entryLog);
-                    deferred.resolve(stationEntryLogModel);
+                    var results;
+                    if (checkInResponse) {
+                        results = checkInResponse.stationEntryLog;
+                    }
+                    deferred.resolve(results);
                 })
                 .fail(function (error) {
+                    console.error(JSON.stringify(error));
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param stationEntryLogModel
-         * @returns {promise}
-         */
-        editCheckIn: function (stationEntryLogModel) {
-            console.trace('PersistenceContext.editCheckIn');
-            var currentContext = this,
-                deferred = $.Deferred();
 
-            var editCheckInRequest = _.extend({}, stationEntryLogModel.attributes);
-            currentContext.stationEntryLogRepository.postEditCheckIn(editCheckInRequest)
+        editCheckIn: function (editCheckInRequest) {
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.editCheckIn - ' + JSON.stringify(editCheckInRequest));
+            this.stationEntryLogRepository.editCheckIn(editCheckInRequest)
                 .done(function (editCheckInResponse) {
-                    stationEntryLogModel.set(editCheckInResponse.entryLog);
-                    deferred.resolve(stationEntryLogModel);
+                    var results;
+                    if (editCheckInResponse) {
+                        results = editCheckInResponse.stationEntryLog;
+                    }
+                    deferred.resolve(results);
                 })
                 .fail(function (error) {
+                    console.error(JSON.stringify(error));
                     deferred.reject(error);
                 });
 
             return deferred.promise();
         },
-        /**
-         *
-         * @param stationEntryLogModel
-         * @returns {promise}
-         */
-        checkOut: function (stationEntryLogModel) {
-            console.trace('PersistenceContext.checkOut');
-            var currentContext = this,
-                deferred = $.Deferred();
 
-            var checkOutRequest = _.extend({}, stationEntryLogModel.attributes);
-            currentContext.stationEntryLogRepository.postCheckOut(checkOutRequest)
+        checkOut: function (checkOutRequest) {
+            var deferred = $.Deferred();
+            console.trace('PersistenceContext.checkOut - ' + JSON.stringify(checkOutRequest));
+            this.stationEntryLogRepository.checkOut(checkOutRequest)
                 .done(function (checkOutResponse) {
-                    stationEntryLogModel.set(checkOutResponse.entryLog);
-                    deferred.resolve(stationEntryLogModel);
+                    var results;
+                    if (checkOutResponse) {
+                        results = checkOutResponse.stationEntryLog;
+                    }
+                    deferred.resolve(results);
                 })
                 .fail(function (error) {
+                    console.error(JSON.stringify(error));
                     deferred.reject(error);
                 });
 
