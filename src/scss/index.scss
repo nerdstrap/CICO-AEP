@@ -5,6 +5,28 @@
 @import "font-awesome";
 @import "app";
 
+html, body {
+  height: 100%;
+}
+
+.container {
+  min-height: 100%;
+  /* equal to footer height */
+  margin-bottom: -40px;
+}
+
+.container:after {
+  content: "";
+  display: block;
+}
+
+.footer-view, .container:after {
+  height: 40px;
+}
+
+.footer-view {
+}
+
 .hidden {
   display: none;
 }
@@ -43,49 +65,49 @@
   }
 }
 
-.form-group-input {
-  position: relative;
-  margin-bottom: 10px !important;
-  padding: 0 8px !important;
-  border: solid 1px #cccccc !important;
-
-  &.invalid {
-    border: solid 1px $palette-red !important;
-  }
-
-  label {
-    display: inline-block !important;
-    margin: 0 !important;
-    padding: 0.625em 0 !important;
-    width: 39% !important;
-  }
-
-  input, select, span.form-input {
-    display: inline-block !important;
-    background: transparent !important;
-    border: 0 none !important;
-    box-shadow: none !important;
-    margin-bottom: 0 !important;
-    padding: 0 !important;
-    width: 55% !important;
-  }
-
-  .clear-form-input {
-    position: absolute !important;
-    margin-left: -10px !important;
-    margin-top: 5px !important;
-  }
-}
-
-.form-group-radio {
-  position: relative;
-  margin-bottom: 10px !important;
-  padding: 0 8px !important;
-
-  &.invalid {
-    border: solid 1px $palette-red !important;
-  }
-}
+//.form-group-input {
+//  position: relative;
+//  margin-bottom: 10px !important;
+//  padding: 0 8px !important;
+//  border: solid 1px #cccccc !important;
+//
+//  &.invalid {
+//    border: solid 1px $palette-red !important;
+//  }
+//
+//  label {
+//    display: inline-block !important;
+//    margin: 0 !important;
+//    padding: 0.625em 0 !important;
+//    width: 39% !important;
+//  }
+//
+//  input, select, span.form-input {
+//    display: inline-block !important;
+//    background: transparent !important;
+//    border: 0 none !important;
+//    box-shadow: none !important;
+//    margin-bottom: 0 !important;
+//    padding: 0 !important;
+//    width: 55% !important;
+//  }
+//
+//  .clear-form-input {
+//    position: absolute !important;
+//    margin-left: -10px !important;
+//    margin-top: 5px !important;
+//  }
+//}
+//
+//.form-group-radio {
+//  position: relative;
+//  margin-bottom: 10px !important;
+//  padding: 0 8px !important;
+//
+//  &.invalid {
+//    border: solid 1px $palette-red !important;
+//  }
+//}
 
 .panel-collapse {
   .toggle-show {

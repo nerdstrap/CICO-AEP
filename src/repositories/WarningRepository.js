@@ -1,57 +1,174 @@
-define(function (require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
-    var config = require('config');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
+var _warnings = require('repositories/warnings.json');
 
-    var WarningRepository = function (options) {
-        options || (options = {});
-        this.initialize.apply(this, arguments);
-    };
+var _getWarningByWarningId = function (warningId) {
+    return _.where(_warnings, {warningId: warningId});
+};
 
-    _.extend(WarningRepository.prototype, {
-        initialize: function (options) {
-            options || (options = {});
-        },
-        getWarnings: function(options) {
-            options || (options = {});
-            var data = $.param(options);
+var _getWarningsByStationId = function (stationId) {
+    var filteredWarnings = _.filter(_warnings, function (warning) {
+        return warning.stationId === stationId && warning.cleared !== "true";
+    });
+    return filteredWarnings;
+};
 
-            return $.ajax({
-                contentType: 'application/json',
-                data: data,
-                dataType: 'json',
-                type: 'GET',
-                url: config.apiUrl() + '/station/warning/find'
-            });
-        },
-        postAddWarning: function(options) {
-            options || (options = {});
-            var data = JSON.stringify(options);
+var _addWarning = function (warning) {
+    warning.warningId = utils.getNewGuid();
+    warning.reportedDate = new Date().getTime().toString();
+    var warningData = _.extend({}, warning);
+    _warnings.push(warningData);
+    return warning;
+};
 
-            return $.ajax({
-                contentType: 'application/json',
-                data: data,
-                dataType: 'json',
-                type: 'PUT',
-                url: config.apiUrl() + '/station/warning/add'
-            });
-        },
-        postClearWarning: function(options) {
-            options || (options = {});
-            var data = JSON.stringify(options);
-
-            return $.ajax({
-                contentType: 'application/json',
-                data: data,
-                dataType: 'json',
-                type: 'PUT',
-                url: config.apiUrl() + '/station/warning/clear'
-            });
-        }
+var _confirmWarning = function (warningAttributes) {
+    var match = _.find(_warnings, function (warning) {
+        return warning.warningId === warningAttributes.warningId.toString();
     });
 
-    return WarningRepository;
+    if (match) {
+        match.confirmedBy = warningAttributes.confirmedBy;
+        match.confirmedDate = new Date().getTime().toString();
+    }
+
+    return _.extend({}, match);
+};
+
+var _clearWarning = function (warningAttributes) {
+    var match = _.find(_warnings, function (warning) {
+        return warning.warningId === warningAttributes.warningId.toString();
+    });
+
+    if (match) {
+        match.cleared = "true";
+    }
+
+    return _.extend({}, match);
+};
+
+var WarningRepository = function (options) {
+    this.initialize.apply(this, arguments);
+};
+
+_.extend(WarningRepository.prototype, {
+
+    initialize: function (options) {
+    },
+
+    getWarning: function (options) {
+        options || (options = {});
+        var deferred = $.Deferred();
+
+        var error;
+        var warnings = _getWarningByWarningId(options.warningId.toString());
+
+        var results = {
+            warnings: warnings
+        };
+
+        window.setTimeout(function () {
+            if (error) {
+                deferred.reject(error);
+            } else {
+                deferred.resolve(results);
+            }
+        }, 5);
+
+        return deferred.promise();
+    },
+
+    getWarnings: function (options) {
+        options || (options = {});
+        var deferred = $.Deferred();
+
+        var error;
+        var warnings = _getWarningsByStationId(options.stationId.toString());
+
+        var results = {
+            warnings: warnings
+        };
+
+        window.setTimeout(function () {
+            if (error) {
+                deferred.reject(error);
+            } else {
+                deferred.resolve(results);
+            }
+        }, 5);
+
+        return deferred.promise();
+    },
+
+    addWarning: function (options) {
+        options || (options = {});
+        var deferred = $.Deferred();
+
+        var error;
+        var warning = _addWarning(options);
+
+        var results = {
+            warning: warning
+        };
+
+        window.setTimeout(function () {
+            if (error) {
+                deferred.reject(error);
+            } else {
+                deferred.resolve(results);
+            }
+        }, 5);
+
+        return deferred.promise();
+    },
+
+    confirmWarning: function (options) {
+        options || (options = {});
+        var deferred = $.Deferred();
+
+        var error;
+        var warning = _confirmWarning(options);
+
+        var results = {
+            warning: warning
+        };
+
+        window.setTimeout(function () {
+            if (error) {
+                deferred.reject(error);
+            } else {
+                deferred.resolve(results);
+            }
+        }, 5);
+
+        return deferred.promise();
+    },
+
+    clearWarning: function (options) {
+        options || (options = {});
+        var deferred = $.Deferred();
+
+        var error;
+        var warning = _clearWarning(options);
+
+        var results = {
+            warning: warning
+        };
+
+        window.setTimeout(function () {
+            if (error) {
+                deferred.reject(error);
+            } else {
+                deferred.resolve(results);
+            }
+        }, 5);
+
+        return deferred.promise();
+    }
+
 });
+
+module.exports = WarningRepository;

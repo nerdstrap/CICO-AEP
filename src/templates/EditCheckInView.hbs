@@ -1,0 +1,52 @@
+<div class="edit-check-in-view">
+    <div class="card-wrap">
+
+        <div class="card {{cid}}-progress">
+            <span class="loading-message">{{resource "editCheckInLoadingMessageText"}}</span>
+            <img class="loading-image" src="{{resource 'progressImageSrc'}}" alt="{{resource 'progressImageAlt'}}"/>
+        </div>
+
+        <div class="card hidden {{cid}}-error">
+            <span class="error-message">{{resource "editCheckInErrorMessageText"}}</span>
+
+            <div class="form-buttons">
+                <a class="ok-button button radius" href="#" tabindex="0">{{resource "okButtonText"}}</a>
+            </div>
+        </div>
+
+        <div class="card hidden {{cid}}-loading">
+            <h3>{{resource "editCheckInHeaderText"}}</h3>
+
+            <div class="form-group-input validating">
+                <label class="form-label" for="duration-input">{{resource "durationHeaderText"}}</label>
+                <select id="duration-input" class="" name="duration">
+                    <option selected="selected" value="0">{{resource "zeroMinutesOptionText"}}</option>
+                </select>
+            </div>
+            <div id="expected-out-time-container" class="form-group-input hidden">
+                <label class="form-label">{{resource "expectedOutTimeHeaderText"}}</label>
+                <span id="expected-out-time-label" class="form-input"></span>
+            </div>
+            <div class="form-group-input">
+                <label class="form-label" for="additional-info-input">{{resource "additionalInfoHeaderText"}}</label>
+                <input id="additional-info-input" class="form-input" name="additionalInfo" type="text" length="1000" placeholder="{{resource 'additionalInfoPlaceholder'}}" data-input="text"/>
+                <a class="clear-form-input hidden" data-button="clear" data-parent="#additional-info-input" href="#" tabindex="0"><i class="fa {{resource 'clearIcon'}}"></i></a>
+            </div>
+
+            <div class="form-button">
+                <a id="cancel-edit-check-in-button" class="button secondary radius" href="#" tabindex="0">{{resource "cancelButtonText"}}</a>
+                <a id="submit-edit-check-in-button" class="button success radius" href="#" tabindex="0">{{resource "editCheckInButtonText"}}</a>
+            </div>
+        </div>
+
+        <div class="card hidden {{cid}}-info">
+            <span class="info-message"></span>
+
+            <div class="form-buttons">
+                <a class="ok-button button radius" href="#" tabindex="0">{{resource "okButtonText"}}</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+

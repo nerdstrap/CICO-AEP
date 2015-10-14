@@ -1,45 +1,99 @@
-define(function (require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
-    var config = require('config');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
+var utils = require('lib/utils');
+var config = require('lib/config');
+var _personnels = require('repositories/personnels');
 
-    var PersonnelRepository = function (options) {
-        options || (options = {});
-        this.initialize.apply(this, arguments);
-    };
+var _getPersonnelByPersonnelId = function (personnelId) {
+    return _.where(_personnels, {personnelId: personnelId});
+};
 
-    _.extend(PersonnelRepository.prototype, {
-        initialize: function (options) {
-            options || (options = {});
-        },
-        getMyPersonnel: function () {
-            options || (options = {});
-            var data = $.param(options);
-
-            return $.ajax({
-                contentType: 'application/json',
-                data: data,
-                dataType: 'json',
-                type: 'GET',
-                url: config.apiUrl() + '/personnel/find/me'
-            });
-        },
-        getPersonnels: function (options) {
-            options || (options = {});
-            var data = $.param(options);
-
-            return $.ajax({
-                contentType: 'application/json',
-                data: data,
-                dataType: 'json',
-                type: 'GET',
-                url: config.apiUrl() + '/personnel/find'
-            });
-        }
+var _getPersonnelsByUserName = function (userName) {
+    var filteredStations = _.filter(_personnels, function (_personnel) {
+        return _personnel.userName.toLowerCase().indexOf(userName.toLowerCase()) >= 0;
     });
+    return filteredStations;
+};
 
-    return PersonnelRepository;
+var PersonnelRepository = function (options) {
+    this.initialize.apply(this, arguments);
+};
+
+_.extend(PersonnelRepository.prototype, {
+
+    initialize: function (options) {
+    },
+
+    getPersonnel: function (options) {
+        options || (options = {});
+        var deferred = $.Deferred();
+
+        var error;
+        var personnels = _getPersonnelByPersonnelId(options.personnelId);
+
+        var results = {
+            personnels: personnels
+        };
+
+        window.setTimeout(function () {
+            if (error) {
+                deferred.reject(error);
+            } else {
+                deferred.resolve(results);
+            }
+        }, 5);
+
+        return deferred.promise();
+    },
+
+    getMyPersonnel: function () {
+        var deferred = $.Deferred();
+
+        var error;
+        var myPersonnelId = config.myIdentity.personnelId;
+        var personnels = _getPersonnelByPersonnelId(myPersonnelId);
+
+        var results = {
+            personnels: personnels
+        };
+
+        window.setTimeout(function () {
+            if (error) {
+                deferred.reject(error);
+            } else {
+                deferred.resolve(results);
+            }
+        }, 5);
+
+        return deferred.promise();
+    },
+
+    getPersonnels: function (options) {
+        options || (options = {});
+        var deferred = $.Deferred();
+
+        var error;
+        var personnels = _getPersonnelsByUserName(options.userName);
+
+        var results = {
+            personnels: personnels
+        };
+
+        window.setTimeout(function () {
+            if (error) {
+                deferred.reject(error);
+            } else {
+                deferred.resolve(results);
+            }
+        }, 5);
+
+        return deferred.promise();
+    }
+
 });
+
+module.exports = PersonnelRepository;

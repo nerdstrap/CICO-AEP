@@ -1,14 +1,13 @@
-define(function(require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
-    var StationEntryLogModel = require('models/StationEntryLogModel');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
+var StationEntryLogModel = require('models/StationEntryLogModel');
 
-    var StationEntryLogCollection = Backbone.Collection.extend({
-        model: StationEntryLogModel
-    });
-
-    return StationEntryLogCollection;
+var StationEntryLogCollection = Backbone.Collection.extend({
+    model: StationEntryLogModel
 });
+
+module.exports = StationEntryLogCollection;

@@ -1,14 +1,11 @@
-define(function(require) {
-    'use strict';
+'use strict';
 
-    var StationTypeEnum = {
-        td: 1,
-        tc: 2
-    };
-    if (Object.freeze) {
-        Object.freeze(StationTypeEnum);
-    }
+var StationTypeEnum = {
+    td: 1,
+    tc: 2
+};
+if (Object.freeze) {
+    Object.freeze(StationTypeEnum);
+}
 
-    return StationTypeEnum;
-
-});
+module.exports = StationTypeEnum;

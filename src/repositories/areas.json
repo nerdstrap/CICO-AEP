@@ -1,0 +1,18 @@
+[
+  {
+    "value": "area1|region1",
+    "text": "one"
+  },
+  {
+    "value": "area2|region1",
+    "text": "two"
+  },
+  {
+    "value": "area3|region2",
+    "text": "three"
+  },
+  {
+    "value": "area4|region3",
+    "text": "four"
+  }
+]

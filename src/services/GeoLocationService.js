@@ -1,51 +1,42 @@
-define(function (require) {
-    'use strict';
+'use strict';
 
-    var module = require('module');
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
-    var masterConfig = module.config();
-    var timeout = masterConfig.timeout || 30000;
-    var enableHighAccuracy = masterConfig.enableHighAccuracy || false;
-    var maximumAge = masterConfig.maximumAge || 60000;
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
+var config = require('lib/config');
+var utils = require('lib/utils');
 
-    var GeoLocationService = function (options) {
-        options || (options = {});
-        this.positionOptions = {
-            'timeout': timeout,
-            'enableHighAccuracy': enableHighAccuracy,
-            'maximumAge': maximumAge
-        };
-        this.initialize.apply(this, arguments);
-    };
+var GeoLocationService = function (options) {
+    this.initialize.apply(this, arguments);
+};
 
-    _.extend(GeoLocationService.prototype, {
-        initialize: function (options) {
-            options || (options = {});
-        },
-        getCurrentPosition: function () {
-            var currentContext = this;
-            var deferred = $.Deferred();
+_.extend(GeoLocationService.prototype, {
 
-            if (window.navigator.geolocation) {
-                window.navigator.geolocation.getCurrentPosition(
-                    function () {
-                        deferred.resolveWith(currentContext, arguments);
-                    },
-                    function () {
-                        deferred.rejectWith(currentContext, arguments);
-                    },
-                    currentContext.positionOptions
-                );
-            } else {
-                var capabilityError = new Error('geolocation capability not found');
-                deferred.rejectWith(currentContext, [capabilityError]);
-            }
+    initialize: function (options) {
+    },
 
-            return deferred.promise();
+    getCurrentPosition: function () {
+        var currentContext = this;
+        var deferred = $.Deferred();
+
+        if (window.navigator && window.navigator.geolocation) {
+            window.navigator.geolocation.getCurrentPosition(
+                function () {
+                    deferred.resolveWith(currentContext, arguments);
+                },
+                function () {
+                    deferred.rejectWith(currentContext, arguments);
+                },
+                config.positionOptions
+            );
+        } else {
+            var capabilityError = new Error(utils.getResource('gpsNotSupportedErrorMessageText'));
+            deferred.rejectWith(currentContext, [capabilityError]);
         }
-    });
 
-    return GeoLocationService;
+        return deferred.promise();
+    }
 });
+
+module.exports = GeoLocationService;

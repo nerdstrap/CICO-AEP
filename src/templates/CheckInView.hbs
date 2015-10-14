@@ -1,0 +1,83 @@
+<div class="check-in-view">
+    <div class="card-wrap">
+
+        <div class="card {{cid}}-progress">
+            <span class="progress-message">{{resource "checkInLoadingMessageText"}}</span>
+            <img class="progress-image" src="{{resource 'progressImageSrc'}}" alt="{{resource 'progressImageAlt'}}"/>
+        </div>
+
+        <div class="card hidden {{cid}}-error">
+            <span class="error-message">{{resource "checkInErrorMessageText"}}</span>
+            <div class="form-buttons">
+                <a class="ok-button button radius" href="#" tabindex="0">{{resource "okButtonText"}}</a>
+            </div>
+        </div>
+
+        <div class="card hidden {{cid}}-loading">
+            <h3>{{resource "checkInHeaderText"}}</h3>
+
+            <div class="form-group-input">
+                <label class="form-label">{{resource "stationNameHeaderText"}}</label>
+                <span id="station-name-label" class="form-input"></span>
+            </div>
+            <div class="form-group-input">
+                <label class="form-label">{{resource "distanceHeaderText"}}</label>
+                <span id="distance-label" class="form-input"></span>
+            </div>
+            <div class="form-group-input validating">
+                <label class="form-label" for="contact-number-input">{{resource "contactNumberHeaderText"}}</label>
+                <input id="contact-number-input" class="form-input" name="contactNumber" type="tel" placeholder="{{resource 'contactNumberPlaceholder'}}" data-input="tel" />
+                <a class="clear-form-input hidden" data-button="clear" data-parent="#contact-number-input" href="#" tabindex="0"><i class="fa {{resource 'clearIcon'}}"></i></a>
+            </div>
+            <div class="form-group-input validating">
+                <label class="form-label" for="purpose-input">{{resource "purposeHeaderText"}}</label>
+                <select id="purpose-input" class="form-input" name="purpose">
+                    <option disabled="disabled" selected="selected" value="">&nbsp;</option>
+                </select>
+            </div>
+            <div id="purpose-other-input-container" class="form-group-input validating hidden">
+                <label class="form-label" for="purpose-other-input">{{resource "purposeOtherHeaderText"}}</label>
+                <input id="purpose-other-input" class="form-input" name="purposeOther" type="text" placeholder="{{resource 'purposeOtherPlaceholder'}}" data-input="text"/>
+                <a class="clear-form-input hidden" data-button="clear" data-parent="#purpose-other-input" href="#" tabindex="0"><i class="fa {{resource 'clearIcon'}}"></i></a>
+            </div>
+            <div class="form-group-input validating">
+                <label class="form-label" for="duration-input">{{resource "durationHeaderText"}}</label>
+                <select id="duration-input" class="" name="duration">
+                    <option disabled="disabled" selected="selected" value="">&nbsp;</option>
+                </select>
+            </div>
+            <div class="form-group-input">
+                <label class="form-label">{{resource "expectedOutTimeHeaderText"}}</label>
+                <span id="expected-out-time-label" class="form-input"></span>
+            </div>
+            <div class="form-group-radio">
+                <label class="form-label">{{resource "withCrewHeaderText"}}</label>
+                <input id="yes-with-crew-input" class="form-input" name="withCrew" type="radio"/><label for="yes-with-crew-input">{{resource "yesHeaderText"}}</label>
+                <input id="no-with-crew-input" class="form-input" name="withCrew" type="radio" checked="checked"/><label for="no-with-crew-input">{{resource "noHeaderText"}}</label>
+            </div>
+            <div id="dispatcher-check-in-input-container" class="form-group-radio validating">
+                <label class="form-label">{{resource "dispatchCenterHeaderText"}}</label>
+                <input id="transmission-dispatch-center-check-in-input" class="form-input" name="dispatchCenterId" type="radio" /><label for="transmission-dispatch-center-check-in-input">{{resource "transmissionDispatchCenterHeaderText"}}</label>
+                <input id="distribution-dispatch-center-check-in-input" class="form-input" name="dispatchCenterId" type="radio" /><label for="distribution-dispatch-center-check-in-input">{{resource "distributionDispatchCenterHeaderText"}}</label>
+            </div>
+            <div class="form-group-input">
+                <label class="form-label" for="additional-info-input">{{resource "additionalInfoHeaderText"}}</label>
+                <input id="additional-info-input" class="form-input" name="additionalInfo" type="text" length="1000" placeholder="{{resource 'additionalInfoPlaceholder'}}" data-input="text"/>
+                <a class="clear-form-input hidden" data-button="clear" data-parent="#additional-info-input" href="#" tabindex="0"><i class="fa {{resource 'clearIcon'}}"></i></a>
+            </div>
+
+            <div class="form-button">
+                <a id="cancel-check-in-button" class="button secondary radius" href="#" tabindex="0">{{resource "cancelButtonText"}}</a>
+                <a id="submit-check-in-button" class="button success radius" href="#" tabindex="0">{{resource "checkInButtonText"}}</a>
+            </div>
+        </div>
+
+        <div class="card hidden {{cid}}-info">
+            <span class="info-message"></span>
+            <div class="form-buttons">
+                <a class="ok-button button radius" href="#" tabindex="0">{{resource "okButtonText"}}</a>
+            </div>
+        </div>
+
+    </div>
+</div>

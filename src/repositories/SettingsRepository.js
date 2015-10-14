@@ -1,35 +1,44 @@
-define(function (require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
+var _settings = require('repositories/settings.json');
 
-    var SettingsRepository = function (options) {
-        options || (options = {});
-        this.initialize.apply(this, arguments);
-    };
+var _getSettings = function () {
+    return _settings;
+};
 
-    _.extend(SettingsRepository.prototype, {
-        initialize: function (options) {
-            options || (options = {});
-        },
-        getSettings: function (options) {
-            options || (options = {});
-            var currentContext = this;
-            var deferred = $.Deferred();
+var SettingsRepository = function (options) {
+    this.initialize.apply(this, arguments);
+};
 
-            var results = {
-                settings: _settings
-            };
+_.extend(SettingsRepository.prototype, {
 
-            window.setTimeout(function () {
-                deferred.resolveWith(currentContext, [results]);
-            }, 20);
+    initialize: function (options) {
+    },
 
-            return deferred.promise();
-        }
-    });
+    getSettings: function () {
+        var deferred = $.Deferred();
 
-    return SettingsRepository;
+        var error;
+        var settings = _getSettings;
+
+        var results = {
+            settings: settings
+        };
+
+        window.setTimeout(function () {
+            if (error) {
+                deferred.reject(error);
+            } else {
+                deferred.resolve(results);
+            }
+        }, 5);
+
+        return deferred.promise();
+    }
 });
+
+module.exports = SettingsRepository;

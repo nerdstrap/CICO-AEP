@@ -1,0 +1,17 @@
+[
+  {
+    "warningId": "1",
+    "stationId": "1",
+    "description": "warning one"
+  },
+  {
+    "warningId": "2",
+    "stationId": "1",
+    "description": "warning two"
+  },
+  {
+    "warningId": "3",
+    "stationId": "2",
+    "description": "warning three"
+  }
+]

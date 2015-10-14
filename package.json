@@ -1,5 +1,5 @@
 {
-  "name": "CheckInCheckOut",
+  "name": "CICO-AEP",
   "version": "1.0.0",
   "repository": {
     "type": "",
@@ -15,6 +15,7 @@
     "underscore": "*",
     "jquery": "*",
     "backbone": "*",
+    "foundation": "*",
     "backbone-validation": "*",
     "handlebars": "*",
     "lodash": "*",

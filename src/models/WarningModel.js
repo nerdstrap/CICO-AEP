@@ -1,30 +1,14 @@
-define(function(require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
 
-    var WarningModel = Backbone.Model.extend({
-        idAttribute: 'stationWarningId',
-        set: function(attributes, options) {
-            if (typeof attributes === 'object') {
-                if (attributes && attributes.firstReportedDate) {
-                    var firstReportedDate;
-                    var firstReportedDateString;
+var WarningModel = Backbone.Model.extend({
 
-                    try {
-                        firstReportedDate = new Date(attributes.firstReportedDate);
-                        firstReportedDateString = firstReportedDate.cicoDate();
-                    }
-                    catch (ex) {
-                    }
-                    attributes.firstReportedDateString = firstReportedDateString;
-                }
-            }
-            return Backbone.Model.prototype.set.call(this, attributes, options);
-        }
-    });
+    idAttribute: 'stationWarningId'
 
-    return WarningModel;
 });
+
+module.exports = WarningModel;

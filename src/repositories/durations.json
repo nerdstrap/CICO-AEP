@@ -1,0 +1,22 @@
+[
+  {
+    "value": "30",
+    "text": "30 minutes"
+  },
+  {
+    "value": "60",
+    "text": "1 hour"
+  },
+  {
+    "value": "120",
+    "text": "2 hours"
+  },
+  {
+    "value": "360",
+    "text": "3 hours"
+  },
+  {
+    "value": "480",
+    "text": "4 hours"
+  }
+]

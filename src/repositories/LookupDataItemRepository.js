@@ -1,33 +1,59 @@
-define(function (require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
-    var config = require('config');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
+var _purposes = require('repositories/purposes.json');
+var _durations = require('repositories/durations.json');
+var _areas = require('repositories/areas.json');
 
-    var LookupDataItemRepository = function (options) {
-        options || (options = {});
-        this.initialize.apply(this, arguments);
-    };
 
-    _.extend(LookupDataItemRepository.prototype, {
-        initialize: function (options) {
-            options || (options = {});
-        },
-        getOptions: function(options) {
-            options || (options = {});
-            var data = $.param(options);
+var _getPurposes = function () {
+    return _purposes;
+};
 
-            return $.ajax({
-                contentType: 'application/json',
-                data: data,
-                dataType: 'json',
-                type: 'GET',
-                url: config.apiUrl() + '/lookupDataItem/find/options'
-            });
-        }
-    });
+var _getDurations = function () {
+    return _durations;
+};
 
-    return LookupDataItemRepository;
+var _getAreas = function () {
+    return _areas;
+};
+
+var LookupDataItemRepository = function (options) {
+    this.initialize.apply(this, arguments);
+};
+
+_.extend(LookupDataItemRepository.prototype, {
+
+    initialize: function (options) {
+    },
+
+    getOptions: function (options) {
+        var deferred = $.Deferred();
+
+        var error;
+        var purposes = _getPurposes();
+        var durations = _getDurations();
+        var areas = _getAreas();
+
+        var results = {
+            purposes: purposes,
+            durations: durations,
+            areas: areas
+        };
+
+        window.setTimeout(function () {
+            if (error) {
+                deferred.reject(error);
+            } else {
+                deferred.resolve(results);
+            }
+        }, 5);
+
+        return deferred.promise();
+    }
 });
+
+module.exports = LookupDataItemRepository;

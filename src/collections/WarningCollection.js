@@ -1,14 +1,13 @@
-define(function(require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
-    var WarningModel = require('models/WarningModel');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
+var WarningModel = require('models/WarningModel');
 
-    var WarningCollection = Backbone.Collection.extend({
-        model: WarningModel
-    });
-
-    return WarningCollection;
+var WarningCollection = Backbone.Collection.extend({
+    model: WarningModel
 });
+
+module.exports = WarningCollection;

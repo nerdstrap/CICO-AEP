@@ -1,18 +1,16 @@
-define(function(require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
 
-    var EventDispatcher = function(options) {
-        if (this.initialize) {
-            this.initialize.apply(this, arguments);
-        }
-    };
+var EventDispatcher = function (options) {
+    if (this.initialize) {
+        this.initialize.apply(this, arguments);
+    }
+};
 
-    _.extend(EventDispatcher.prototype, Backbone.Events, {
-    });
+_.extend(EventDispatcher.prototype, Backbone.Events, {});
 
-    return EventDispatcher;
-});
+module.exports = EventDispatcher;

@@ -1,92 +1,90 @@
-define(function(require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
 
-    var CompositeView = function (options) {
-        this.children = _([]);
-        Backbone.View.apply(this, [options]);
-    };
+var CompositeView = function (options) {
+    this.children = _([]);
+    Backbone.View.apply(this, [options]);
+};
 
-    _.extend(CompositeView.prototype, Backbone.View.prototype, {
+_.extend(CompositeView.prototype, Backbone.View.prototype, {
 
-        initialize: function () {
-            Backbone.View.prototype.initialize.apply(this, arguments);
-        },
+    initialize: function () {
+        Backbone.View.prototype.initialize.apply(this, arguments);
+    },
 
-        leave: function () {
-            this.trigger('leave');
-            this.unbind();
-            this.stopListening();
-            this.remove();
-            this._leaveChildren();
-            this._removeFromParent();
-        },
+    leave: function () {
+        this.trigger('leave');
+        this.unbind();
+        this.stopListening();
+        this.remove();
+        this._leaveChildren();
+        this._removeFromParent();
+    },
 
-        renderChild: function (view) {
-            view.parent = this;
-            view.render();
-            this.children.push(view);
-        },
+    renderChild: function (view) {
+        view.parent = this;
+        view.render();
+        this.children.push(view);
+    },
 
-        renderChildInto: function (view, container) {
-            this.renderChild(view);
-            this.$(container).html(view.el);
-        },
+    renderChildInto: function (view, container) {
+        this.renderChild(view);
+        this.$(container).html(view.el);
+    },
 
-        replaceWithChild: function (view, container) {
-            this.renderChild(view);
-            this.$(container).replaceWith(view.el);
-        },
+    replaceWithChild: function (view, container) {
+        this.renderChild(view);
+        this.$(container).replaceWith(view.el);
+    },
 
-        appendChild: function (view) {
-            this.renderChild(view);
-            this.$el.append(view.el);
-        },
+    appendChild: function (view) {
+        this.renderChild(view);
+        this.$el.append(view.el);
+    },
 
-        appendChildTo: function (view, container) {
-            this.renderChild(view);
-            this.$(container).append(view.el);
-        },
+    appendChildTo: function (view, container) {
+        this.renderChild(view);
+        this.$(container).append(view.el);
+    },
 
-        prependChild: function (view) {
-            this.renderChild(view);
-            this.$el.prepend(view.el);
-        },
+    prependChild: function (view) {
+        this.renderChild(view);
+        this.$el.prepend(view.el);
+    },
 
-        prependChildTo: function (view, container) {
-            this.renderChild(view);
-            this.$(container).prepend(view.el);
-        },
+    prependChildTo: function (view, container) {
+        this.renderChild(view);
+        this.$(container).prepend(view.el);
+    },
 
-        swapped: function () {
-            this.trigger('swapped');
-        },
+    swapped: function () {
+        this.trigger('swapped');
+    },
 
-        _leaveChildren: function () {
-            this.children.chain().clone().each(function (view) {
-                if (view.leave) {
-                    view.leave();
-                }
-            });
-        },
-
-        _removeFromParent: function () {
-            if (this.parent) {
-                this.parent._removeChild(this);
+    _leaveChildren: function () {
+        this.children.chain().clone().each(function (view) {
+            if (view.leave) {
+                view.leave();
             }
-        },
+        });
+    },
 
-        _removeChild: function (view) {
-            var index = this.children.indexOf(view);
-            this.children.splice(index, 1);
+    _removeFromParent: function () {
+        if (this.parent) {
+            this.parent._removeChild(this);
         }
-    });
+    },
 
-    CompositeView.extend = Backbone.View.extend;
-
-    return CompositeView;
-
+    _removeChild: function (view) {
+        var index = this.children.indexOf(view);
+        this.children.splice(index, 1);
+    }
 });
+
+CompositeView.extend = Backbone.View.extend;
+
+module.exports = CompositeView;

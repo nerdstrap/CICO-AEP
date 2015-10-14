@@ -1,141 +1,137 @@
-define(function (require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
-    var BaseDetailView = require('views/BaseDetailView');
-    var EventNameEnum = require('enums/EventNameEnum');
-    var PersonnelTypeEnum = require('enums/PersonnelTypeEnum');
-    var StationEntryLogCollection = require('collections/StationEntryLogCollection');
-    var StationEntryLogTileView = require('views/StationEntryLogTileView');
-    var StationEntryLogCollectionView = require('views/StationEntryLogCollectionView');
-    var utils = require('utils');
-    var template = require('hbs!templates/PersonnelDetailView');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
+var BaseView = require('views/BaseView');
+var EventNameEnum = require('enums/EventNameEnum');
+var StationEntryLogCollection = require('collections/StationEntryLogCollection');
+var StationEntryLogCollectionView = require('views/StationEntryLogCollectionView');
+var utils = require('lib/utils');
+var template = require('templates/PersonnelDetailView.hbs');
 
-    var PersonnelDetailView = BaseDetailView.extend({
+var PersonnelDetailView = BaseView.extend({
 
-        initialize: function (options) {
-            BaseDetailView.prototype.initialize.apply(this, arguments);
-            options || (options = {});
-            this.controller = options.controller;
-            this.dispatcher = options.dispatcher || this;
+    initialize: function (options) {
+        BaseView.prototype.initialize.apply(this, arguments);
+        options || (options = {});
+        this.controller = options.controller;
+        this.dispatcher = options.dispatcher || this;
+        this.myPersonnelModel = options.myPersonnelModel;
+        this.myOpenStationEntryLogModel = options.myOpenStationEntryLogModel;
+        this.openStationEntryLogCollection = options.openStationEntryLogCollection || new StationEntryLogCollection();
+        this.recentStationEntryLogCollection = options.recentStationEntryLogCollection || new StationEntryLogCollection();
+        this.listenTo(this, 'loaded', this.onLoaded);
+        this.listenTo(this, 'error', this.onError);
+    },
 
-            this.myPersonnelModel = options.myPersonnelModel;
-            this.myOpenStationEntryLogModel = options.myOpenStationEntryLogModel;
+    render: function () {
+        this.setElement(template(this.renderModel(this.model)));
+        this.renderOpenStationEntryLogCollectionView();
+        this.renderRecentStationEntryLogCollectionView();
+        return this;
+    },
 
-            this.recentStationEntryLogCollection = options.recentStationEntryLogCollection || new StationEntryLogCollection();
+    renderOpenStationEntryLogCollectionView: function () {
+        this.openStationEntryLogCollectionViewInstance = new StationEntryLogCollectionView({
+            dispatcher: this.dispatcher,
+            collection: this.recentStationEntryLogCollection,
+            showPersonnel: false,
+            showStation: true
+        });
+        this.appendChildTo(this.openStationEntryLogCollectionViewInstance, '#open-station-entry-log-collection-view-container');
+        return this;
+    },
 
-            this.listenTo(this, 'loaded', this.onLoaded);
-            this.listenTo(this, 'error', this.onError);
-        },
+    renderRecentStationEntryLogCollectionView: function () {
+        this.recentStationEntryLogCollectionViewInstance = new StationEntryLogCollectionView({
+            dispatcher: this.dispatcher,
+            collection: this.recentStationEntryLogCollection,
+            showPersonnel: false,
+            showStation: true
+        });
+        this.appendChildTo(this.recentStationEntryLogCollectionViewInstance, '#recent-station-entry-log-collection-view-container');
+        return this;
+    },
 
-        render: function () {
-            this.setElement(template(this.renderModel(this.model)));
-            this.renderOpenStationEntryLogView()
-            this.renderRecentStationEntryLogCollectionView();
-            return this;
-        },
+    events: {
+        'click #go-to-station-button': 'goToStationDetails',
+        'click #call-contact-number-button': 'callContactNumber',
+        'click #send-email-button': 'sendEmail',
+        'click [data-toggle="panel"]': 'togglePanel'
+    },
 
-        renderOpenStationEntryLogView: function () {
-            this.openStationEntryLogTileView = new StationEntryLogTileView({
-                dispatcher: this.dispatcher,
-                model: this.myOpenStationEntryLogModel,
-                showStation: true,
-                showPersonnel: false
-            });
-            this.appendChildTo(this.openStationEntryLogTileView, '#open-station-entry-log-view-container .tile-wrap');
-            return this;
-        },
+    updateViewFromModel: function () {
+        this.updateUserNameHeader();
+        this.updateCallContactNumberButton();
+        this.updateSendEmailButton();
+        return this;
+    },
 
-        renderRecentStationEntryLogCollectionView: function () {
-            this.recentStationEntryLogCollectionViewInstance = new StationEntryLogCollectionView({
-                dispatcher: this.dispatcher,
-                collection: this.recentStationEntryLogCollection,
-                showPersonnel: false,
-                showStation: true
-            });
-            this.appendChildTo(this.recentStationEntryLogCollectionViewInstance, '#recent-station-entry-log-collection-view-container');
-            return this;
-        },
-        
-        events: {
-            'click #go-to-station-button': 'goToStationDetailWithId',
-            'click #call-contact-number-button': 'callContactNumber',
-            'click #send-email-button': 'sendEmail',
-            'click [data-toggle="panel"]': 'togglePanel'
-        },
-
-        updateViewFromModel: function () {
-            this.updateUserNameHeader();
-            this.updateCallContactNumberButton();
-            this.updateSendEmailButton();
-            return this;
-        },
-
-        updateUserNameHeader: function () {
-            if (this.model.has('userName')) {
-                var userName = this.model.get('userName');
-                this.$('#user-name-header').text(userName);
-            }
-            return this;
-        },
-
-        updateCallContactNumberButton: function () {
-            if (this.model.has('contactNumber')) {
-                var contactNumber = this.model.get('contactNumber');
-                this.$('#call-contact-number-button').text(utils.formatPhone(utils.cleanPhone(contactNumber)));
-            }
-            return this;
-        },
-
-        updateSendEmailButton: function () {
-            if (this.model.has('email')) {
-                var email = this.model.get('email');
-                this.$('#send-email-button').text(email);
-            }
-            return this;
-        },
-
-        callContactNumber: function (event) {
-            if (event) {
-                event.preventDefault();
-            }
-        },
-
-        sendEmail: function (event) {
-            if (event) {
-                event.preventDefault();
-            }
-        },
-
-        goToStationDetailWithId: function (event) {
-            if (event) {
-                event.preventDefault();
-            }
-            if (this.myOpenStationEntryLogModel.has('stationId')) {
-                var stationId = this.myOpenStationEntryLogModel.get('stationId');
-                this.dispatcher.trigger(EventNameEnum.goToStationDetailWithId, stationId);
-            } else {
-                var stationEntryLogId = this.myOpenStationEntryLogModel.get('stationEntryLogId');
-                this.dispatcher.trigger(EventNameEnum.goToAdHocStationWithId, stationEntryLogId);
-            }
-        },
-
-        onLoaded: function () {
-            this.updateViewFromModel();
-            this.showLoading();
-            var options = {
-                personnelId: this.model.get('personnelId')
-            };
-            this.openStationEntryLogTileView.updateViewFromModel();
-            this.dispatcher.trigger(EventNameEnum.refreshStationEntryLogCollection, this.recentStationEntryLogCollection, _.extend({}, options, {recent: true}));
-        },
-
-        onError: function (error) {
-            this.showError(error);
+    updateUserNameHeader: function () {
+        var userName = this.model.get('userName');
+        if (userName) {
+            this.$('#user-name-header').text(userName);
         }
-    });
+        return this;
+    },
 
-    return PersonnelDetailView;
+    updateCallContactNumberButton: function () {
+        var contactNumber = this.model.get('contactNumber');
+        if (contactNumber) {
+            this.$('#call-contact-number-button').text(utils.formatPhone(utils.cleanPhone(contactNumber)));
+        }
+        return this;
+    },
+
+    updateSendEmailButton: function () {
+        var email = this.model.get('email');
+        if (email) {
+            this.$('#send-email-button').text(email);
+        }
+        return this;
+    },
+
+    callContactNumber: function (event) {
+        if (event) {
+            event.preventDefault();
+        }
+    },
+
+    sendEmail: function (event) {
+        if (event) {
+            event.preventDefault();
+        }
+    },
+
+    goToStationDetails: function (event) {
+        if (event) {
+            event.preventDefault();
+        }
+        var stationId = this.myOpenStationEntryLogModel.get('stationId');
+        if (stationId) {
+            this.dispatcher.trigger(EventNameEnum.goToStationDetails, stationId);
+        } else {
+            var stationEntryLogId = this.myOpenStationEntryLogModel.get('stationEntryLogId');
+            this.dispatcher.trigger(EventNameEnum.goToAdHocStationDetails, stationEntryLogId);
+        }
+    },
+
+    onLoaded: function () {
+        this.updateViewFromModel();
+        this.showLoading();
+        var options = {
+            personnelId: this.model.get('personnelId')
+        };
+        this.dispatcher.trigger(EventNameEnum.getOpenStationEntryLogs, this.openStationEntryLogCollection, _.extend({}, options));
+        this.dispatcher.trigger(EventNameEnum.getRecentStationEntryLogs, this.recentStationEntryLogCollection, _.extend({}, options));
+    },
+
+    onError: function (error) {
+        this.showError(error);
+    }
+
 });
+
+module.exports = PersonnelDetailView;

@@ -1,14 +1,13 @@
-define(function(require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
-    var AbnormalConditionModel = require('models/AbnormalConditionModel');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
+var AbnormalConditionModel = require('models/AbnormalConditionModel');
 
-    var AbnormalConditionCollection = Backbone.Collection.extend({
-        model: AbnormalConditionModel
-    });
-
-    return AbnormalConditionCollection;
+var AbnormalConditionCollection = Backbone.Collection.extend({
+    model: AbnormalConditionModel
 });
+
+module.exports = AbnormalConditionCollection;

@@ -1,14 +1,13 @@
-define(function(require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
-    var PersonnelModel = require('models/PersonnelModel');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
+var PersonnelModel = require('models/PersonnelModel');
 
-    var PersonnelCollection = Backbone.Collection.extend({
-        model: PersonnelModel
-    });
-
-    return PersonnelCollection;
+var PersonnelCollection = Backbone.Collection.extend({
+    model: PersonnelModel
 });
+
+module.exports = PersonnelCollection;

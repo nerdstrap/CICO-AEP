@@ -1,72 +1,72 @@
-define(function (require) {
-    'use strict';
+'use strict';
 
-    var $ = require('jquery');
-    var _ = require('underscore');
-    var Backbone = require('backbone');
-    var BaseCollectionView = require('views/BaseCollectionView');
-    var EventNameEnum = require('enums/EventNameEnum');
-    var PersonnelTileView = require('views/PersonnelTileView');
-    var utils = require('utils');
-    var template = require('hbs!templates/PersonnelCollectionView');
+var Backbone = require('backbone');
+Backbone.$ = require('jquery');
+var $ = Backbone.$;
+var _ = require('underscore');
 
-    var PersonnelCollectionView = BaseCollectionView.extend({
+var BaseView = require('views/BaseView');
+var EventNameEnum = require('enums/EventNameEnum');
+var PersonnelTileView = require('views/PersonnelTileView');
+var utils = require('lib/utils');
+var template = require('templates/PersonnelCollectionView.hbs');
 
-        initialize: function (options) {
-            BaseCollectionView.prototype.initialize.apply(this, arguments);
+var PersonnelCollectionView = BaseView.extend({
 
-            options || (options = {});
-            this.dispatcher = options.dispatcher || this;
+    initialize: function (options) {
+        BaseView.prototype.initialize.apply(this, arguments);
 
-            this.listenTo(this.collection, 'sync', this.onSync);
-            this.listenTo(this.collection, 'reset', this.onReset);
-            this.listenTo(this.collection, 'error', this.onError);
-        },
+        options || (options = {});
+        this.dispatcher = options.dispatcher || this;
 
-        render: function () {
-            this.setElement(template(this.renderModel()));
-            return this;
-        },
+        this.listenTo(this.collection, 'sync', this.onSync);
+        this.listenTo(this.collection, 'reset', this.onReset);
+        this.listenTo(this.collection, 'error', this.onError);
+    },
 
-        appendTile: function (personnelModel) {
-            var personnelTileView = new PersonnelTileView({
-                dispatcher: this.dispatcher,
-                model: personnelModel
-            });
-            this.appendChildTo(personnelTileView, '.tile-wrap');
-            return this;
-        },
+    render: function () {
+        this.setElement(template(this.renderModel()));
+        return this;
+    },
 
-        onSync: function () {
-            this.hideInfo();
-            this.showProgress();
-        },
+    appendTile: function (personnelModel) {
+        var personnelTileView = new PersonnelTileView({
+            dispatcher: this.dispatcher,
+            model: personnelModel
+        });
+        this.appendChildTo(personnelTileView, '.tile-wrap');
+        return this;
+    },
 
-        onReset: function () {
-            this.hideInfo();
-            if (this.collection.models && this.collection.models.length < 1) {
-                this.showInfo(utils.getResource('noResultsMessageText'));
-            }
-            this._leaveChildren();
-            _.each(this.collection.models, this.appendTile, this);
-            this.showLoading();
-        },
+    onSync: function () {
+        this.hideInfo();
+        this.showProgress();
+    },
 
-        onError: function (error) {
-            var errorMessage = utils.getResource('personnelCollectionErrorMessage');
-            if (error && error.code === 1) {
-                errorMessage = utils.getResource('gpsDisabledErrorMessage');
-            }
-            if (error && error.code === 2) {
-                errorMessage = utils.getResource('gpsUnavailableErrorMessage');
-            }
-            if (error && error.code === 3) {
-                errorMessage = utils.getResource('gpsTimedOutErrorMessage');
-            }
-            this.showError(errorMessage);
+    onReset: function () {
+        this.hideInfo();
+        if (this.collection.models && this.collection.models.length < 1) {
+            this.showInfo(utils.getResource('noResultsMessageText'));
         }
-    });
+        this._leaveChildren();
+        _.each(this.collection.models, this.appendTile, this);
+        this.showLoading();
+    },
 
-    return PersonnelCollectionView;
+    onError: function (error) {
+        var errorMessage = utils.getResource('personnelCollectionErrorMessageText');
+        if (error && error.code === 1) {
+            errorMessage = utils.getResource('gpsDisabledErrorMessageText');
+        }
+        if (error && error.code === 2) {
+            errorMessage = utils.getResource('gpsUnavailableErrorMessageText');
+        }
+        if (error && error.code === 3) {
+            errorMessage = utils.getResource('gpsTimedOutErrorMessageText');
+        }
+        this.showError(errorMessage);
+    }
 
 });
+
+module.exports = PersonnelCollectionView;
